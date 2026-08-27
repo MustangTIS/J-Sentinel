@@ -1,0 +1,13 @@
+﻿Keyword,Target Folder,Description,優先順位
+大雨特別警報,emergency/rain,命に関わる優先情報,1
+土砂災害危険警報,emergency/earth,命に関わる優先情報,2
+記録的短時間大雨,emergency/rain,命に関わる優先情報,3
+暴風特別警報,emergency/wind,命に関わる優先情報,5
+防災速報,emergency/defender,防災速報など,6
+大雨警報,warning/rain,通常の軽快情報,15
+台風,warning/typhoon,通常の警戒情報,16
+竜巻注意情報,warning/tornado,通常の警戒情報,17
+洪水警報,warning/river,通常の警戒情報,18
+天候情報,weather/whole,長期予報など,85
+解説情報,weather/whole,長期予報など,87
+熱中症警戒アラート,attention/hotspot,高温計情報,89
