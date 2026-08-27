@@ -5,7 +5,7 @@
 ## 📁 ディレクトリ構成
 
 ```text
-D:\Users\Mustang_TIS\Documents\GitHub\J-Sentinel\j-sent\
+\GitHub\J-Sentinel\j-sent\
  ┣ codemaster/        # 各種コード定義・CSVマスターデータ（areakisyou.csv, keiho.csv 等）
  ┣ database/          # 取得したJSONデータや同期時刻ファイル（※実行時に自動生成）
  ┣ config.json        # 動作設定ファイル（デバッグモード、インターバル等）
