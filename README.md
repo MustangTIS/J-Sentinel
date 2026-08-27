@@ -14,8 +14,7 @@
  ┣ fetch_info.py      # 気象庁情報フェッチモジュール
  ┣ fetch_quake.py     # 地震情報フェッチモジュール
  ┣ fetch_warning.py   # 警報・マップデータフェッチモジュール
- ┣ Start-*.bat        # 各モジュール単体実行用バッチ
- ┗ README.md
+ ┗ Start-*.bat        # 各モジュール単体実行用バッチ
 
 ```
 
