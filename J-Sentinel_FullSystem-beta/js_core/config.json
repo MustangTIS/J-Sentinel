@@ -1,0 +1,22 @@
+{
+  "debug_mode": true,
+  "interval_seconds": 60,
+  "tasks": {
+    "info": {
+      "enabled": true,
+      "script": "fetch_info.py"
+    },
+    "quake": {
+      "enabled": true,
+      "script": "fetch_quake.py"
+    },
+    "warning": {
+      "enabled": true,
+      "script": "fetch_warning.py"
+    }
+  },
+  "retention": {
+    "auto_clean_enabled": true,
+    "keep_days": 90
+  }
+}

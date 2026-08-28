@@ -1,0 +1,15 @@
+{
+    "monitor_base_dir": [
+        "js_core/database/info",
+        "js_core/database/quake"
+    ],
+    "destinations": [
+        {
+            "url": "https://discord.com/api/webhooks/..",
+            "style": "disembed"
+        }
+    ],
+    "bot_settings": {
+        "token": "DiscordBOTToken"
+    }
+}

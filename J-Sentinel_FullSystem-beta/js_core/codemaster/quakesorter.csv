@@ -1,0 +1,6 @@
+﻿category,match_type,keyword,priority,description
+tsunami,head_title_include,津波警報・注意報・予報,1,津波関連の正式電文
+world,head_title_include,遠地地震に関する情報,2,遠地地震に関する情報
+japan,head_title_include,震源・震度に関する情報,3,日本国内の震源震度報
+japan,head_title_include,地震情報,3,一般地震情報
+etc,fallback,,99,その他・未分類・臨時解説情報
