@@ -1,4 +1,5 @@
-from datetime import datetime
+#run_sentinel.py
+from datetime import datetime, timedelta
 import json
 import os
 const_time = None # プレースホルダー
@@ -21,7 +22,7 @@ def load_config() -> dict:
           "quake": {"enabled": True, "script": "fetch_quake.py"},
           "warning": {"enabled": True, "script": "fetch_warning.py"},
       },
-      "retention": {"auto_clean_enabled": False, "keep_days": 90},
+      "retention": {"auto_clean_enabled": True, "keep_days": 90},
   }
 
   if CONFIG_PATH.exists():
@@ -89,43 +90,97 @@ def run_script(script_name: str, debug_mode: bool):
     print(f"[ERROR] 実行時例外発生 ({script_name}): {e}")
     return False
 
+def initialize_sync_files():
+    """
+    起動時にデータベース内の同期ファイルが存在しない場合、
+    または前回の記録から時間が経ちすぎている場合を除き、過去ログ爆撃を防ぐ
+    """
+    db_dir = BASE_DIR / "database"
+    db_dir.mkdir(parents=True, exist_ok=True)
 
-def main_loop():
-  print("==================================================")
-  print(" J-Sentinel Orchestrator (Main Runner) Started")
-  print(f" Base Directory: {BASE_DIR}")
-  print("==================================================")
-
-  while True:
-    # 設定を毎ループごとに再読み込みするため、稼働中にJSONを書き換えてON/OFFを即時反映可能
+    # 🛑 ここで一度コンフィグを読み込んで debug_mode の状態を安全に取得する
     config = load_config()
     debug_mode = config.get("debug_mode", False)
-    interval = config.get("interval_seconds", 60)
-    tasks = config.get("tasks", {})
 
-    if debug_mode:
-      print(
-          f"\n--- 巡回サイクル開始 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ---"
-      )
+    sync_files = ["info_last_sync.json", "quake_last_sync.json"]
+    current_time = datetime.now().astimezone()
+    current_iso_time = current_time.isoformat(timespec="seconds")
 
-    # 各タスクの実行判定
-    for task_name, task_info in tasks.items():
-      is_enabled = task_info.get("enabled", False)
-      script_name = task_info.get("script")
+    for file_name in sync_files:
+        file_path = db_dir / file_name
+        should_initialize = False
 
-      if not is_enabled:
+        if not file_path.exists():
+            should_initialize = True
+        else:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                last_dt_str = data.get("last_datetime")
+                
+                if last_dt_str:
+                    last_dt = datetime.fromisoformat(last_dt_str)
+                    time_diff = current_time - last_dt
+                    if time_diff > timedelta(hours=1):
+                        print(f"[INFO] 既存の同期ファイル {file_name} の記録が1時間以上前（{last_dt_str}）のため、現在時刻に更新します。")
+                        should_initialize = True
+                    else:
+                        if debug_mode:
+                            print(f"[INFO] 既存の同期ファイル {file_name} は新しいため維持します ({last_dt_str})。")
+                else:
+                    should_initialize = True
+            except Exception as e:
+                print(f"[WARN] 既存の同期ファイル {file_name} の読み込みに失敗したため再初期化します: {e}")
+                should_initialize = True
+
+        if should_initialize:
+            try:
+                data = {"last_datetime": current_iso_time}
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                print(f"[INIT] 同期ファイルを初期化しました: {file_name} -> {current_iso_time}")
+            except Exception as e:
+                print(f"[WARN] 同期ファイルの初期化に失敗しました ({file_name}): {e}")
+
+def main_loop():
+    print("==================================================")
+    print(" J-Sentinel Orchestrator (Main Runner) Started")
+    print(f" Base Directory: {BASE_DIR}")
+    print("==================================================")
+
+    # 🚀 起動時に同期ファイルを初期化して過去ログ爆撃を防止
+    initialize_sync_files()
+
+    while True:
+        # 修正: ここから下のループ内処理のインデントを4スペース分深くする
+        config = load_config()
+        debug_mode = config.get("debug_mode", False)
+        interval = config.get("interval_seconds", 60)
+        tasks = config.get("tasks", {})
+
         if debug_mode:
-          print(f"[SKIP] タスク '{task_name}' は無効化されています。")
-        continue
+            print(
+                f"\n--- 巡回サイクル開始 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ---"
+            )
 
-      if script_name:
-        run_script(script_name, debug_mode)
+        # 各タスクの実行判定
+        for task_name, task_info in tasks.items():
+            is_enabled = task_info.get("enabled", False)
+            script_name = task_info.get("script")
 
-    if debug_mode:
-      print(f"--- 巡回終了。 次回確認まで {interval} 秒待機 ---")
+            if not is_enabled:
+                if debug_mode:
+                    print(f"[SKIP] タスク '{task_name}' は無効化されています。")
+                continue
 
-    # 指定されたインターバルだけ待機
-    time.sleep(interval)
+            if script_name:
+                run_script(script_name, debug_mode)
+
+        if debug_mode:
+            print(f"--- 巡回終了。 次回確認まで {interval} 秒待機 ---")
+
+        # 指定されたインターバルだけ待機
+        time.sleep(interval)
 
 
 if __name__ == "__main__":
