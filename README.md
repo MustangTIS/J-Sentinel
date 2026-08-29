@@ -1,71 +1,49 @@
-# J-Sentinel (v0.75beta)
+<div align="center">
+  <img src="Asset/icon.jpg" alt="J-Sentinel Logo" width="160" height="160">
+  <h1>J-Sentinel (v0.9.5-beta)</h1>
+  <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信オーケストレーターシステム</strong></p>
+</div>
 
-気象庁の各種情報や地震速報、警報マップデータを定期巡回・取得し、ローカルにデータベースとして蓄積するためのPython製オーケストレーターシステムです。
+---
+
+## 📥 ダウンロード
+
+最新のフルシステム版パッケージ（コアエンジン、マルチ配信モジュール、GUIマネージャー同梱）は、以下のリンクからダウンロードできます。
+
+👉 **[J-Sentinel_FullSystem_v0.9.5.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v0.9.5/J-Sentinel_FullSyste_v0.9.5.zip)**
+
+---
+
+## 📋 概要
+
+**J-Sentinel** は、気象庁が公開する公式オープンデータ（地震、津波、気象警報、各種防災情報など）を定期ポーリングによってローカルストレージへインジェスト（取得・蓄積）し、さらに **Discord、Slack、Matrix、Bluesky** などのマルチプラットフォームへ自動配信、対話型ボットによる情報照会を行うための高度防災システムです[cite: 22, 23]。
+
+非公式APIに依存せず、気象庁の一次ソースからクリーンかつ安全にデータを取得する「コアエンジン」と、それを拡張・通知する「フルシステム（Discord連携等）」を一つに統合したパッケージとして提供しています[cite: 22, 23]。
+
+---
 
 ## 📁 ディレクトリ構成
-J-Sentinelのメインエンジン
+
+本パッケージには、コアエンジン単体と、マルチ通知・GUI設定マネージャーを含むフルシステム版が同梱されています。
+
 ```text
-\GitHub\J-Sentinel\J-Sentinel-Core\
- ┣ codemaster/        # 各種コード定義・CSVマスターデータ（areakisyou.csv, keiho.csv 等）
- ┣ database/          # 取得したJSONデータや同期時刻ファイル（※実行時に自動生成）
- ┣ config.json        # 動作設定ファイル（デバッグモード、インターバル等）
- ┣ run_sentinel.py    # メインオーケストレーター（常駐ランナー）
- ┣ run_sentinel.bat   # ランナー起動用バッチ
- ┣ fetch_info.py      # 気象庁情報フェッチモジュール
- ┣ fetch_quake.py     # 地震情報フェッチモジュール
- ┣ fetch_warning.py   # 警報・マップデータフェッチモジュール
- ┗ Start-*.bat        # 各モジュール単体実行用バッチ
-
-```
-
-## ⚙️ 主な仕様・特徴
-
-* **自動オーケストレーション**: `run_sentinel.py` が指定秒数（デフォルト60秒）ごとに各フェッチスクリプトを安全に順次実行。
-* **インテリジェントな差分同期**: 初回のみ全件取得（ドカ食い）を行い、2回目以降は前回同期時刻を基準にした高速な差分チェックへ自動移行。
-* **ホットリロード対応**: 稼働中の `config.json` の変更を次のループで即時反映可能。
-* **堅牢なプロセス管理**: サブプロセス実行時のタイムアウト制御（300秒）により、ネットワーク遅延や大量データ処理時のデッドロックを回避。
-
-現在設計中のDiscord連携用ツールJ-Sentinel_FullSystem-betaも開発中ですが、開発中のため内容は割愛。
-config.jsonの部分をお好みの仕様にカスタマイズし、つかってください解析できる人なら、多分SlackやMatrixにもそのまま流用できはするはず。
-
-## 🚀 使い方
-
-### 1. 単体実行（初回・テスト用）
-
-```bash
-python fetch_info.py     # 情報モジュールの実行
-python fetch_quake.py    # 地震情報モジュールの実行
-python fetch_warning.py  # 警報マップモジュールの実行
-
-```
-
-※または各 `Start-*.bat` を使用可能。
-
-### 2. メインランナーの常駐起動
-
-全モジュールの定期巡回（オーケストレーション）を開始します。
-
-```bash
-python run_sentinel.py
-
-```
-
-（または `run_sentinel.bat` を実行）
-
-## 🗺️ 今後の開発予定 (Roadmap)
-
-現在の v0.6 は、バックエンドでの「データ収集・蓄積基盤（インフラストラクチャ）」が整った状態です。今後は以下の開発・拡張を予定しています。
-
-* [ ] **監視・検知機能の実装**: 蓄積されたデータやリアルタイムデータから、特定の条件（地震の規模、警報の発令・変化など）を検知するフィルター機能。
-* [ ] **外部通知連携**: 検知したイベントをDiscordや外部へ飛ばすブリッジ機能の統合。
-* [ ] **ダッシュボード・可視化**: 蓄積されたログやデータを直感的に確認できるUI/UXの開発。
-
-## 📄 仕様書・関連リンク
-
-* [仕様書 / 関連ドキュメントのリンクをここに記載する](https://github.com/MustangTIS/J-Sentinel/blob/main/%E9%96%8B%E7%99%BA%E6%96%B9%E9%87%9D%E4%BB%95%E6%A7%98%E6%9B%B8.md)
-
-## 📝 履歴 / Version
-
-* **v0.5**: コアシステムおよびオーケストレーターの安定稼働を実現。初回大量データのタイムアウト対策・差分同期フローを確立。
-* **v0.6**: codemasterフォルダに複数のcsvファイルを追加し、ジャンル切り分けを明確にした。
-* **v0.7.5**: Discord連携システムのメインフレームの仮仕様を公開。そのためメインエンジンのみのコア版とDiscord連携のフル版の二種類のファイルが置いてある。その他細かい部分の更新。
+\GitHub\J-Sentinel\
+ ┣ Asset/
+ ┃  ┗ icon.jpg               # システムアイコン
+ ┣ J-Sentinel-Core/          # コア・インジェストシステム単体
+ ┃  ┣ codemaster/            # 振り分けルール・地域コード辞書 (CSV)
+ ┃  ┣ database/              # 取得したJSONデータや同期時刻ファイル（※実行時に自動生成）
+ ┃  ┣ config.json            # コア動作設定ファイル
+ ┃  ┣ run_sentinel.py        # メイン・オーケストレーター（常駐ランナー）
+ ┃  ┣ run_sentinel.bat       # ランナー起動用バッチ
+ ┃  ┣ js_gui_setup.py        # GUI設定管理・マスター編集ツール
+ ┃  ┗ setup-gui.bat          # コア用GUI設定起動バッチ
+ ┗ J-Sentinel_FullSystem/    # フルシステム版（マルチ配信・GUI・Bot統合）
+    ┣ config.json            # システム全体設定（トークン・配信先等）
+    ┣ setup-gui.bat          # GUI設定・マルチ配信先マネージャー起動用バッチ
+    ┣ J-Sentinel-Boot.bat    # メインシステム (J-Sentinel_main.py) 起動用バッチ
+    ┣ Bot-Boot.bat           # Discordコールバックボット (bot.py) 起動用バッチ
+    ┣ J-Sentinel_main.py     # メイン・オーケストレーター
+    ┣ senders.py             # マルチプラットフォーム配信司令塔 (Discord/Slack/Matrix/Bluesky)
+    ┣ bot.py                 # Discord インタラクティブ・コールバックボット
+    └─ js_core/              # コアインジェストモジュール群
