@@ -5,6 +5,7 @@ import csv
 import sys
 import subprocess
 import customtkinter as ctk
+import tkinter as tk
 from tkinter import messagebox
 
 class JSentinelSetup(ctk.CTk):
@@ -23,6 +24,9 @@ class JSentinelSetup(ctk.CTk):
         self.geometry("1150x950")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
+        
+        if os.path.exists(os.path.join(self.base_dir, "icon.ico")):
+            self.iconbitmap(os.path.join(self.base_dir, "icon.ico"))
 
         # 状態変数
         self.checkbox_vars = {}  
@@ -33,6 +37,66 @@ class JSentinelSetup(ctk.CTk):
         self.create_widgets()
         self.load_all_csvs()
         self.load_existing_config()
+
+    def bind_entry_context_menu(self, entry_widget):
+        menu = tk.Menu(entry_widget, tearoff=0, bg="#2b2b2b", fg="#ffffff", activebackground="#1f538d", activeforeground="#ffffff")
+        
+        # 各操作を明示的な関数で安全に実行する
+        def do_cut():
+            try:
+                entry_widget.event_generate("<<Cut>>")
+            except Exception:
+                pass
+
+        def do_copy():
+            try:
+                entry_widget.event_generate("<<Copy>>")
+            except Exception:
+                pass
+
+        def do_paste():
+            try:
+                # クリップボードから文字列を直接取得して挿入する（確実な方式）
+                clip_text = entry_widget.clipboard_get()
+                # 選択範囲があれば置き換え、なければ現在のカーソル位置に挿入
+                try:
+                    sel_first = entry_widget.index("sel.first")
+                    sel_last = entry_widget.index("sel.last")
+                    entry_widget.delete(sel_first, sel_last)
+                except tk.TclError:
+                    pass # 選択範囲がない場合は何もしない
+                
+                entry_widget.insert("insert", clip_text)
+            except Exception:
+                # クリップボードが空またはテキスト以外の場合のフォールバック
+                try:
+                    entry_widget.event_generate("<<Paste>>")
+                except Exception:
+                    pass
+
+        def do_select_all():
+            try:
+                entry_widget.select_range(0, 'end')
+                entry_widget.icursor('end')
+            except Exception:
+                pass
+
+        menu.add_command(label="切り取り", command=do_cut)
+        menu.add_command(label="コピー", command=do_copy)
+        menu.add_command(label="貼り付け", command=do_paste)
+        menu.add_separator()
+        menu.add_command(label="すべて選択", command=do_select_all)
+
+        def r_click(event):
+            # 右クリックしたときに入力欄へフォーカスを当ててからポップアップを表示
+            try:
+                entry_widget.focus_set()
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+
+        # Windowsの場合は <Button-3> (右クリック)
+        entry_widget.bind("<Button-3>", r_click)
 
     def create_widgets(self):
         # --- タイトル ---
@@ -51,6 +115,9 @@ class JSentinelSetup(ctk.CTk):
         ctk.CTkLabel(bot_input_row, text="Bot Token:", font=("Yu Gothic", 10)).pack(side="left", padx=(0, 5))
         self.entry_bot_token = ctk.CTkEntry(bot_input_row, placeholder_text="Discord Bot Token を入力", height=28, show="*")
         self.entry_bot_token.pack(side="left", fill="x", expand=True, padx=5)
+        
+        # 🟢 ここで Bot Token 入力欄にコンテキストメニューを紐付け
+        self.bind_entry_context_menu(self.entry_bot_token)
 
         # --- 全体を左右に大きく二分割するメインコンテナ ---
         main_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -190,6 +257,10 @@ class JSentinelSetup(ctk.CTk):
         handle_entry = ctk.CTkEntry(fields_frame, placeholder_text="Bluesky Handle (例: user.bsky.social)", height=28)
         pass_entry = ctk.CTkEntry(fields_frame, placeholder_text="Bluesky App Password", height=28, show="*")
 
+        # 🟢 配信先カード内の各エントリを一括でコンテキストメニューに紐付け
+        for entry in (url_entry, room_entry, token_entry, handle_entry, pass_entry):
+            self.bind_entry_context_menu(entry)
+    
         if data.get("url"): url_entry.insert(0, data.get("url"))
         if data.get("matrix_room"): room_entry.insert(0, data.get("matrix_room"))
         if data.get("token"): token_entry.insert(0, data.get("token"))
@@ -407,7 +478,7 @@ lnk.Save
             destinations_list.append({
                 "style": row["platform_var"].get(),
                 "url": row["url_entry"].get().strip(),
-                "matrix_room": row["room_entry"].get().strip(),
+                "room": row["room_entry"].get().strip(),
                 "token": row["token_entry"].get().strip(),
                 "handle": row["handle_entry"].get().strip(),
                 "password": row["pass_entry"].get().strip()
