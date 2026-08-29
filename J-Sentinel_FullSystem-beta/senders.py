@@ -23,7 +23,7 @@ def build_payload(style, title, description, color, bot_name, current_version, t
                 "description": f"送信時 {timestamp}\n\n{description}",
                 "color": color,
                 "image": {"url": "attachment://image.png"},
-                "footer": {"text": f"J-Sentinel v{current_version}"}
+                "footer": {"text": f"J-Sentinel ~ 高度防災システム v{current_version}"}
             }]
         }
 

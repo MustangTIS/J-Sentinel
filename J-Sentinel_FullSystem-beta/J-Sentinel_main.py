@@ -17,11 +17,11 @@ import warning_parser
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-CURRENT_VERSION = "0.9.0β"
+CURRENT_VERSION = "0.9.5"
 REPO_URL = "MustangTIS/J-Sentinel"
 
 def check_for_updates():
-    api_url = f"https://api.github.com/repos/{REPO_URL}/releases/latest"
+    api_url = "https://api.github.com/repos/MustangTIS/J-Sentinel/releases/latest"
     try:
         response = requests.get(api_url, timeout=5)
         if response.status_code == 200:

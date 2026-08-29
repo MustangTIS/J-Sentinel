@@ -4,11 +4,9 @@ import json
 
 def load_system_config(file_path="config.json"):
     defaults = {
-        "eqmax_dir": "C:/EqMax_Win64",
-        "destinations": [],
-        "ram_limit": 1024,
-        "min_trigger_int": "3",
-        "min_display_int": "1"
+        "bot_settings": {},
+        "monitor_base_dir": [],
+        "destinations": []
     }
 
     config = defaults.copy()
@@ -16,11 +14,7 @@ def load_system_config(file_path="config.json"):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 config.update(json.load(f))
-        except:
-            pass
-
-    config["eqmax_dir"] = os.path.normpath(config["eqmax_dir"])
-    config["exe_path"] = os.path.join(config["eqmax_dir"], "EqMax.exe")
-    config["is_env_ok"] = os.path.exists(config["exe_path"])
+        except Exception as e:
+            print(f"[Warning] config.json の読み込みに失敗しました: {e}")
 
     return config

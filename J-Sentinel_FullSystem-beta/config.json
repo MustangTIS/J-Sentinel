@@ -1,6 +1,6 @@
 {
     "bot_settings": {
-        "token": "......."
+        "token": "YourDiscordBotKey"
     },
     "monitor_base_dir": [
         "js_core/database/info/etc",
@@ -14,42 +14,16 @@
         "js_core/database/info/warning/tornado",
         "js_core/database/info/warning/river",
         "js_core/database/info/weather/whole",
-        "js_core/database/info/weather/whole",
         "js_core/database/info/attention/hotspot",
         "js_core/database/quake/etc",
         "js_core/database/quake/tsunami",
         "js_core/database/quake/world",
-        "js_core/database/quake/japan",
         "js_core/database/quake/japan"
     ],
     "destinations": [
         {
             "style": "disembed",
-            "url": "https://discord.com/.....",
-            "matrix_room": "",
-            "token": "",
-            "handle": "",
-            "password": ""
-        },
-        {
-            "style": "slack",
-            "url": "",
-            "matrix_room": "",
-            "token": "",
-            "handle": "",
-            "password": ""
-        },
-        {
-            "style": "matrix",
-            "url": "",
-            "matrix_room": "",
-            "token": "",
-            "handle": "",
-            "password": ""
-        },
-        {
-            "style": "bluesky",
-            "url": "",
+            "url": "YourDiscordWebhoek",
             "matrix_room": "",
             "token": "",
             "handle": "",

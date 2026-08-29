@@ -26,8 +26,9 @@ class JSentinelSetup(ctk.CTk):
 
         # 状態変数
         self.checkbox_vars = {}  
+        self.checkbox_widgets = {} # チェックボックスのウィジェット参照を保持
         self.csv_data_map = {}   
-        self.destination_rows = [] 
+        self.destination_rows = []
 
         self.create_widgets()
         self.load_all_csvs()
@@ -127,12 +128,36 @@ class JSentinelSetup(ctk.CTk):
         action_row.pack(pady=10, padx=15, fill="x")
 
         self.btn_save = ctk.CTkButton(action_row, text="設定を保存", fg_color="#1f538d", hover_color="#14375e", height=42,
-                                      font=("Yu Gothic", 14, "bold"), command=self.save_config)
+                                     font=("Yu Gothic", 14, "bold"), command=self.save_config)
         self.btn_save.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
         self.btn_open_core_gui = ctk.CTkButton(action_row, text="Core設定を開く (js_gui_setup.py)", fg_color="#444444", hover_color="#555555", height=42,
                                                font=("Yu Gothic", 12, "bold"), command=self.open_core_gui)
         self.btn_open_core_gui.pack(side="right", padx=(5, 0))
+
+    def update_duplicate_states(self, *args):
+        """選択されたパスの重複を検知し、重複している項目を視覚的にグレーアウト・制御する"""
+        path_counts = {}
+        for kw, var in self.checkbox_vars.items():
+            if var.get():
+                path = self.csv_data_map.get(kw)
+                if path:
+                    path_counts[path] = path_counts.get(path, 0) + 1
+
+        for kw, widget in self.checkbox_widgets.items():
+            path = self.csv_data_map.get(kw)
+            is_checked = self.checkbox_vars[kw].get()
+            
+            if path and path_counts.get(path, 0) > 1:
+                if is_checked:
+                    widget.configure(text_color="#888888")
+                else:
+                    widget.configure(text_color="#555555")
+            else:
+                if "その他未分類" in kw:
+                    widget.configure(text_color="#ffcc00")
+                else:
+                    widget.configure(text_color="#DCE4EE")
 
     def add_destination_card(self, data=None):
         if data is None:
@@ -212,8 +237,12 @@ class JSentinelSetup(ctk.CTk):
         etc_rel = "js_core/database/info/etc"
         self.csv_data_map[etc_key] = etc_rel
         etc_var = ctk.BooleanVar(value=False)
+        etc_var.trace_add("write", self.update_duplicate_states)
         self.checkbox_vars[etc_key] = etc_var
-        ctk.CTkCheckBox(scroll_parent, text="【その他未分類】 [info/etc]", variable=etc_var, font=("Yu Gothic", 10, "bold"), text_color="#ffcc00").pack(pady=2, padx=2, anchor="w")
+        
+        chk_etc = ctk.CTkCheckBox(scroll_parent, text="【その他未分類】 [info/etc]", variable=etc_var, font=("Yu Gothic", 10, "bold"), text_color="#ffcc00")
+        chk_etc.pack(pady=2, padx=2, anchor="w")
+        self.checkbox_widgets[etc_key] = chk_etc
 
         if not os.path.exists(csv_path):
             ctk.CTkLabel(scroll_parent, text="CSV未検出", text_color="orange").pack(anchor="w", padx=5, pady=5)
@@ -228,8 +257,12 @@ class JSentinelSetup(ctk.CTk):
                         rel = os.path.join("js_core", "database", "info", tf).replace("\\", "/")
                         self.csv_data_map[kw] = rel
                         var = ctk.BooleanVar(value=False)
+                        var.trace_add("write", self.update_duplicate_states)
                         self.checkbox_vars[kw] = var
-                        ctk.CTkCheckBox(scroll_parent, text=f"{kw} [{tf}]", variable=var, font=("Yu Gothic", 10)).pack(pady=2, padx=2, anchor="w")
+                        
+                        chk = ctk.CTkCheckBox(scroll_parent, text=f"{kw} [{tf}]", variable=var, font=("Yu Gothic", 10))
+                        chk.pack(pady=2, padx=2, anchor="w")
+                        self.checkbox_widgets[kw] = chk
         except Exception as e:
             print(f"Info CSV error: {e}")
 
@@ -238,8 +271,12 @@ class JSentinelSetup(ctk.CTk):
         etc_rel = "js_core/database/quake/etc"
         self.csv_data_map[etc_key] = etc_rel
         etc_var = ctk.BooleanVar(value=False)
+        etc_var.trace_add("write", self.update_duplicate_states)
         self.checkbox_vars[etc_key] = etc_var
-        ctk.CTkCheckBox(scroll_parent, text="【その他未分類】 [quake/etc]", variable=etc_var, font=("Yu Gothic", 10, "bold"), text_color="#ffcc00").pack(pady=2, padx=2, anchor="w")
+        
+        chk_etc = ctk.CTkCheckBox(scroll_parent, text="【その他未分類】 [quake/etc]", variable=etc_var, font=("Yu Gothic", 10, "bold"), text_color="#ffcc00")
+        chk_etc.pack(pady=2, padx=2, anchor="w")
+        self.checkbox_widgets[etc_key] = chk_etc
 
         if not os.path.exists(csv_path):
             ctk.CTkLabel(scroll_parent, text="CSV未検出", text_color="orange").pack(anchor="w", padx=5, pady=5)
@@ -255,8 +292,12 @@ class JSentinelSetup(ctk.CTk):
                         rel = os.path.join("js_core", "database", sub).replace("\\", "/")
                         self.csv_data_map[kw] = rel
                         var = ctk.BooleanVar(value=False)
+                        var.trace_add("write", self.update_duplicate_states)
                         self.checkbox_vars[kw] = var
-                        ctk.CTkCheckBox(scroll_parent, text=f"{kw} [{cat}]", variable=var, font=("Yu Gothic", 10)).pack(pady=2, padx=2, anchor="w")
+                        
+                        chk = ctk.CTkCheckBox(scroll_parent, text=f"{kw} [{cat}]", variable=var, font=("Yu Gothic", 10))
+                        chk.pack(pady=2, padx=2, anchor="w")
+                        self.checkbox_widgets[kw] = chk
         except Exception as e:
             print(f"Quake CSV error: {e}")
 
@@ -301,27 +342,35 @@ class JSentinelSetup(ctk.CTk):
             self.add_destination_card()
 
     def create_shortcut_file(self, target_script, shortcut_name, dest_dir):
-        """標準の VBScript を一時生成して指定ディレクトリにショートカットを作成する"""
+        """EqMax-Watchdogと同様の形式（python.exe直指定 ＋ 引数 ＋ 最小化起動）でショートカットを作成する"""
         try:
             if not os.path.exists(dest_dir):
                 os.makedirs(dest_dir, exist_ok=True)
                 
             path = os.path.join(dest_dir, f"{shortcut_name}.lnk")
             target_path = os.path.join(self.base_dir, target_script)
-            python_w_path = sys.executable.replace("python.exe", "pythonw.exe")
-            if not os.path.exists(python_w_path):
-                python_w_path = sys.executable
+            
+            python_path = sys.executable
+            icon_file_path = os.path.join(self.base_dir, "icon.ico")
+
+            safe_path = path.replace("\\", "/")
+            safe_target = target_path.replace("\\", "/")
+            safe_workdir = self.base_dir.replace("\\", "/")
+            safe_python = python_path.replace("\\", "/")
+            safe_icon = icon_file_path.replace("\\", "/")
 
             vbs_path = os.path.join(self.base_dir, "temp_create_shortcut.vbs")
-            vbs_content = f"""
-Set ws = CreateObject("WScript.Shell")
-Set lnk = ws.CreateShortcut("{path}")
-lnk.TargetPath = "{python_w_path}"
-lnk.Arguments = "\"{target_path}\""
-lnk.WorkingDirectory = "{self.base_dir}"
-lnk.IconLocation = "{python_w_path}"
+            
+            vbs_content = f"""Set ws = CreateObject("WScript.Shell")
+Set lnk = ws.CreateShortcut("{safe_path}")
+lnk.TargetPath = "{safe_python}"
+lnk.Arguments = "{""}{safe_target}{""}"
+lnk.WorkingDirectory = "{safe_workdir}"
+lnk.IconLocation = "{safe_icon}, 0"
+lnk.WindowStyle = 7
 lnk.Save
 """
+
             with open(vbs_path, "w", encoding="cp932") as f:
                 f.write(vbs_content)
 
@@ -336,7 +385,7 @@ lnk.Save
             return False
 
     def open_core_gui(self):
-        """\js_core\js_gui_setup.py を別プロセスで起動する"""
+        r"""\js_core\js_gui_setup.py を別プロセスで起動する"""
         core_gui_path = os.path.join(self.base_dir, "js_core", "js_gui_setup.py")
         if os.path.exists(core_gui_path):
             try:
@@ -344,10 +393,14 @@ lnk.Save
             except Exception as e:
                 messagebox.showerror("起動エラー", f"Core設定の起動に失敗しました:\n{e}")
         else:
-            messagebox.showwarning("ファイル未検出", f"指定されたパスにファイルが見つかりません:\n{core_gui_path}")
+            messagebox.showwarning("ファイル未検出", f"指定されたパスインにファイルが見つかりません:\n{core_gui_path}")
 
     def save_config(self):
-        selected_dirs = [self.csv_data_map[kw] for kw, var in self.checkbox_vars.items() if var.get()]
+        raw_selected_dirs = [self.csv_data_map[kw] for kw, var in self.checkbox_vars.items() if var.get()]
+        selected_dirs = []
+        for p in raw_selected_dirs:
+            if p not in selected_dirs:
+                selected_dirs.append(p)
 
         destinations_list = []
         for row in self.destination_rows:
@@ -376,7 +429,6 @@ lnk.Save
 
             created_actions = []
 
-            # 1. デスクトップショートカット作成
             if self.var_create_desktop.get():
                 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
                 if not os.path.exists(desktop):
@@ -387,7 +439,6 @@ lnk.Save
                 if sc_main and sc_bot:
                     created_actions.append("デスクトップショートカット作成完了")
 
-            # 2. スタートアップ登録
             if self.var_create_startup.get():
                 startup_dir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
                 sc_main_su = self.create_shortcut_file("J-Sentinel_main.py", "J-Sentinel_Alert", startup_dir)

@@ -1,5 +1,5 @@
 {
-  "debug_mode": true,
+  "debug_mode": false,
   "interval_seconds": 60,
   "tasks": {
     "info": {
