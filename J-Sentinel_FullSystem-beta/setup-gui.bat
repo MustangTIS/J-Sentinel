@@ -41,7 +41,7 @@ echo [Step 2] Checking Libraries...
 %PY% -c "import psutil, requests, PIL, customtkinter"
 if %errorlevel% neq 0 (
     echo [Notice] 不足しているライブラリをインストールします...
-    %PY% -m pip install psutil requests Pillow customtkinter --prefer-binary
+    %PY% -m pip install psutil requests Pillow customtkinter discord --prefer-binary
     if %errorlevel% neq 0 (
         echo [Error] インストールに失敗しました。
         pause
