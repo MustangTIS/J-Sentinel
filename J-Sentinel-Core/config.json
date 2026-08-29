@@ -16,7 +16,7 @@
     }
   },
   "retention": {
-    "auto_clean_enabled": false,
+    "auto_clean_enabled": true,
     "keep_days": 90
   }
 }

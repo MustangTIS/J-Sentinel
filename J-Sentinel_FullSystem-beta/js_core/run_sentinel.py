@@ -22,7 +22,7 @@ def load_config() -> dict:
           "quake": {"enabled": True, "script": "fetch_quake.py"},
           "warning": {"enabled": True, "script": "fetch_warning.py"},
       },
-      "retention": {"auto_clean_enabled": False, "keep_days": 90},
+      "retention": {"auto_clean_enabled": True, "keep_days": 90},
   }
 
   if CONFIG_PATH.exists():
