@@ -37,11 +37,12 @@ echo [Status] Using command: %PY%
 
 :LIBRARY_CHECK
 echo [Step 2] Checking Libraries...
-:: 2>&1 を外して、エラーが出たら画面で見えるようにします
-%PY% -c "import psutil, requests, PIL, customtkinter"
+:: 2>&1 を外して、エラーが出たら画面で見えるようにします (nioを追加)
+%PY% -c "import psutil, requests, PIL, customtkinter, nio"
 if %errorlevel% neq 0 (
     echo [Notice] 不足しているライブラリをインストールします...
-    %PY% -m pip install psutil requests Pillow customtkinter discord --prefer-binary
+    :: matrix-nio を追加
+    %PY% -m pip install psutil requests Pillow customtkinter discord matrix-nio --prefer-binary
     if %errorlevel% neq 0 (
         echo [Error] インストールに失敗しました。
         pause

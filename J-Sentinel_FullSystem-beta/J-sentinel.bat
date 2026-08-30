@@ -32,11 +32,11 @@ echo [Status] Using command: %PY%
 :LIBRARY_CHECK
 echo [Step 2] Checking Libraries...
 :: 変数 %PY% を使ってチェック
-%PY% -c "import psutil, requests, PIL, customtkinter" >nul 2>&1
+%PY% -c "import psutil, requests, PIL, nio, customtkinter" >nul 2>&1
 if %errorlevel% neq 0 (
     echo [Notice] Installing missing libraries...
     %PY% -m pip install --upgrade pip
-    %PY% -m pip install psutil requests Pillow customtkinter --prefer-binary
+    %PY% -m pip install psutil requests Pillow matrix-nio customtkinter --prefer-binary
 )
 
 :BOOT_MAIN
