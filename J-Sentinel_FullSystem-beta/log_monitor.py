@@ -18,8 +18,6 @@ class LogMonitor:
             if os.path.exists(target_dir):
                 for root, _, files in os.walk(target_dir):
                     normalized_root = root.replace("\\", "/")
-                    if "keiho" in normalized_root or "warning" in normalized_root:
-                        continue
                         
                     for file in files:
                         file_path = os.path.abspath(os.path.join(root, file))
@@ -38,8 +36,7 @@ class LogMonitor:
 
             for root, _, files in os.walk(target_dir):
                 normalized_root = root.replace("\\", "/")
-                if "keiho" in normalized_root or "warning" in normalized_root:
-                    continue
+
 
                 for file in files:
                     file_path = os.path.abspath(os.path.join(root, file))
