@@ -228,7 +228,7 @@ class JSentinelSetup(ctk.CTk):
 
     def add_destination_card(self, data=None):
         if data is None:
-            data = {"platform": "disembed", "url": "", "matrix_room": "", "token": "", "handle": "", "password": ""}
+            data = {"platform": "disembed", "url": "", "room": "", "token": "", "handle": "", "password": ""}
 
         card = ctk.CTkFrame(self.scroll_dest, fg_color="#2b2b2b", corner_radius=6)
         card.pack(pady=6, padx=4, fill="x")
@@ -257,16 +257,9 @@ class JSentinelSetup(ctk.CTk):
         handle_entry = ctk.CTkEntry(fields_frame, placeholder_text="Bluesky Handle (例: user.bsky.social)", height=28)
         pass_entry = ctk.CTkEntry(fields_frame, placeholder_text="Bluesky App Password", height=28, show="*")
 
-        # 🟢 配信先カード内の各エントリを一括でコンテキストメニューに紐付け
         for entry in (url_entry, room_entry, token_entry, handle_entry, pass_entry):
             self.bind_entry_context_menu(entry)
     
-        if data.get("url"): url_entry.insert(0, data.get("url"))
-        if data.get("matrix_room"): room_entry.insert(0, data.get("matrix_room"))
-        if data.get("token"): token_entry.insert(0, data.get("token"))
-        if data.get("handle"): handle_entry.insert(0, data.get("handle"))
-        if data.get("password"): pass_entry.insert(0, data.get("password"))
-
         def update_fields(*args):
             for widget in (url_entry, room_entry, token_entry, handle_entry, pass_entry):
                 widget.pack_forget()
@@ -290,7 +283,14 @@ class JSentinelSetup(ctk.CTk):
         platform_menu = ctk.CTkOptionMenu(top_row, values=["disembed", "dissimple", "slack", "matrix", "bluesky"], variable=platform_var, width=110, height=24)
         platform_menu.pack(side="left", padx=4)
 
+        # 🟢 先に update_fields を呼んでウィジェットを適切に表示状態にしてから値を挿入する
         update_fields()
+
+        if data.get("url"): url_entry.insert(0, data.get("url"))
+        if data.get("room"): room_entry.insert(0, data.get("room"))
+        if data.get("token"): token_entry.insert(0, data.get("token"))
+        if data.get("handle"): handle_entry.insert(0, data.get("handle"))
+        if data.get("password"): pass_entry.insert(0, data.get("password"))
 
         card_data = {
             "card": card,
@@ -395,7 +395,7 @@ class JSentinelSetup(ctk.CTk):
                     self.add_destination_card({
                         "platform": dest.get("style", dest.get("platform", "disembed")),
                         "url": dest.get("url", ""),
-                        "matrix_room": dest.get("matrix_room", ""),
+                        "room": dest.get("room", ""),
                         "token": dest.get("token", ""),
                         "handle": dest.get("handle", ""),
                         "password": dest.get("password", "")

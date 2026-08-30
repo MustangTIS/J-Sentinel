@@ -24,7 +24,7 @@
         {
             "style": "disembed",
             "url": "YourDiscordWebhoek",
-            "matrix_room": "",
+            "room": "",
             "token": "",
             "handle": "",
             "password": ""
