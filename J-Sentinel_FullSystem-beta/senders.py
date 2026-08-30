@@ -9,9 +9,9 @@ def build_payload(style, title, description, color, bot_name, current_version, t
     # すべて共通で使う装飾済みタイトル
     bold_title = f"📢 **{title}**"
 
-    # Discord Simple用
+    # Discord Simple用（改行ありのプレーンテキスト）
     if style == "dissimple":
-        content = f"{bold_title} / 送信時 {timestamp} / {description.replace(chr(10), ' / ')}".strip()
+        content = f"{bold_title} / 送信時 {timestamp}\n{description}".strip()
         return {"content": content, "username": bot_name}
 
     # Discord Embed用
