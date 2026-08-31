@@ -66,9 +66,13 @@ def load_dictionaries(base_dir: Path):
             with open(keiho_csv, mode="r", encoding="cp932", errors="ignore") as f:
                 reader = csv.reader(f)
                 next(reader, None)
+                # keiho.csv 読み込み部分をこうしておくと安心です
                 for row in reader:
                     if len(row) >= 2 and row[0].strip():
-                        keiho_dict[str(row[0]).strip()] = row[1].strip()
+                        # キー側を2桁のゼロ埋め（"3" → "03"）に統一する
+                        raw_code = row[0].strip()
+                        code_key = raw_code.zfill(2) if raw_code.isdigit() else raw_code
+                        keiho_dict[code_key] = row[1].strip()
             print(f"[INFO] keiho.csv を読み込みました（登録件数: {len(keiho_dict)}件）: {keiho_csv.name}")
         except Exception as e:
             print(f"[WARN] keiho.csv の読み込みに失敗しました: {e}")
@@ -76,55 +80,105 @@ def load_dictionaries(base_dir: Path):
     return area_dict, keiho_dict
 
 def convert_and_save_warning_rt(new_data, base_dir: Path):
-    """取得した map.json のコードに辞書を当てて、名称付きの WarningRT.json に整形・保存する"""
+    """取得した map.json の構造を解析し、名称付きの WarningRT.json に整形・保存する"""
     area_dict, keiho_dict = load_dictionaries(base_dir)
     
     converted_reports = []
+    reports = new_data if isinstance(new_data, list) else [new_data]
     
-    for report in new_data:
+    # 新旧すべてのJSON構造（キーがエリアコードになっているパターンや areaCode / code を持つパターン）を再帰的に網羅探索する関数
+    def extract_areas(obj):
+        found = []
+        if isinstance(obj, dict):
+            # 1. キー自体がエリアコード（例: "0110000": { ... }）であるケースの判定
+            # コードらしい数字のみのキーかつ、値の中に warnings, kinds, areaCode などの要素がある場合
+            for k, v in obj.items():
+                if isinstance(v, dict) and k.isdigit() and (len(k) == 6 or len(k) == 5 or len(k) == 2 or len(k) == 7):
+                    if "warnings" in v or "kinds" in v or "areaCode" in v or any(sub_k.isdigit() for sub_k in v.keys()):
+                        # このキー自体をコードとして扱う
+                        v_copy = v.copy()
+                        if "code" not in v_copy:
+                            v_copy["code"] = k
+                        found.append(v_copy)
+                
+                # 通常の再帰探索
+                found.extend(extract_areas(v))
+                
+            # 2. オブジェクト内に直接 code または areaCode が明記されているケース
+            area_code = obj.get("code") or obj.get("areaCode")
+            warn_sources = obj.get("warnings") or obj.get("kinds")
+            if area_code and warn_sources and isinstance(warn_sources, list):
+                found.append(obj)
+                
+        elif isinstance(obj, list):
+            for item in obj:
+                found.extend(extract_areas(item))
+        return found
+
+    for report in reports:
         report_time = report.get("reportDatetime")
+        notice_text = report.get("notice")  # ← ①ここで取得する
         area_types_list = []
         
-        for area_type in report.get("areaTypes", []):
-            areas_list = []
-            for area in area_type.get("areas", []):
-                area_code = area.get("code")
+        # レポート内からエリア情報をすべて抽出
+        raw_areas = extract_areas(report)
+        areas_list = []
+        
+        seen_codes = set()
+        for area in raw_areas:
+            area_code = area.get("code") or area.get("areaCode")
+            if not area_code or not isinstance(area_code, str):
+                continue
+            
+            # 重複回避
+            if area_code in seen_codes:
+                continue
+            seen_codes.add(area_code)
+            
+            # 辞書から名称を引く
+            area_name = area_dict.get(area_code)
+            if not area_name:
+                matching_key_padded = area_code + "0"
+                area_name = area_dict.get(matching_key_padded)
+            if not area_name and len(area_code) == 7:
+                area_name = area_dict.get(area_code[:-1])
+            if not area_name:
+                area_name = area_code
+            
+            warnings_list = []
+            warn_sources = area.get("warnings") or area.get("kinds", [])
                 
-                # 辞書から名称を引く
-                area_name = area_dict.get(area_code)
-                if not area_name:
-                    matching_key_padded = area_code + "0"
-                    area_name = area_dict.get(matching_key_padded)
-                if not area_name and len(area_code) == 7:
-                    area_name = area_dict.get(area_code[:-1])
-                
-                if not area_name:
-                    area_name = area_code
-                
-                warnings_list = []
-                for warn in area.get("warnings", []):
-                    warn_code = warn.get("code")
-                    warn_name = keiho_dict.get(warn_code, warn_code)
-                    status = warn.get("status")
+            for warn in warn_sources:
+                if not isinstance(warn, dict):
+                    continue
+                warn_code = warn.get("code")
+                if not warn_code:
+                    continue
                     
-                    warnings_list.append({
-                        "code": warn_code,
-                        "name": warn_name,
-                        "status": status
-                    })
+                warn_name = keiho_dict.get(warn_code, warn_code)
+                status = warn.get("status")
                 
+                warnings_list.append({
+                    "code": warn_code,
+                    "name": warn_name,
+                    "status": status
+                })
+            
+            if warnings_list:
                 areas_list.append({
                     "code": area_code,
                     "name": area_name,
                     "warnings": warnings_list
                 })
-            
+        
+        if areas_list:
             area_types_list.append({
                 "areas": areas_list
             })
             
         converted_reports.append({
             "reportDatetime": report_time,
+            "notice": notice_text,          # ← ここに追加！
             "areaTypes": area_types_list
         })
 
@@ -133,7 +187,6 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
         "reports": converted_reports
     }
     
-    # 仕様書に合わせた保存先: database/keiho/convert/WarningRT.json
     convert_dir = DATABASE_DIR / "keiho" / "convert"
     convert_dir.mkdir(parents=True, exist_ok=True)
     rt_file = convert_dir / "WarningRT.json"
@@ -141,10 +194,10 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
     rt_file.write_text(json.dumps(rt_data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[SAVED] 名称変換済みのリアルタイムデータを更新しました -> keiho/convert/{rt_file.name}")
 
+
 def fetch_and_store_warning_map():
     print("[INFO] 警報マップデータ (map.json) の取得を開始...")
 
-    # 仕様書に合わせた保存先: database/keiho/base
     target_dir = DATABASE_DIR / "keiho" / "base"
     target_dir.mkdir(parents=True, exist_ok=True)
 
