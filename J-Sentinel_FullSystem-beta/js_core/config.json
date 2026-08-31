@@ -1,5 +1,5 @@
 {
-  "debug_mode": false,
+  "debug_mode": true,
   "interval_seconds": 60,
   "tasks": {
     "info": {
@@ -13,6 +13,10 @@
     "warning": {
       "enabled": true,
       "script": "fetch_warning.py"
+    },
+    "forecast": {
+      "enabled": true,
+      "script": "fetch_forecast.py"
     }
   },
   "retention": {
