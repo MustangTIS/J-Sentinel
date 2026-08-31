@@ -7,7 +7,7 @@ import requests
 # 基準ディレクトリとURLの設定
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
-WARNING_MAP_URL = "https://www.jma.go.jp/bosai/warning/data/warning/map.json"
+WARNING_MAP_URL = "https://www.jma.go.jp/bosai/warning/data/r8/map.json"
 
 def load_dictionaries(base_dir: Path):
     """codemaster フォルダ内の areakisyou.csv から辞書を作成する"""
