@@ -1,4 +1,3 @@
-#warning_parser.py
 import json
 import os
 
@@ -22,6 +21,8 @@ def get_warning_info(json_path, target_region):
     reports = data.get("reports", [])
     for report in reports:
         report_time = report.get("reportDatetime", "")
+        notice_text = report.get("notice", None)  # ← ★ここでレポート側のお知らせを取得
+        
         for area_type in report.get("areaTypes", []):
             for area in area_type.get("areas", []):
                 area_name = area.get("name", "")
@@ -29,6 +30,7 @@ def get_warning_info(json_path, target_region):
                 if target_region in area_name:
                     matched_areas.append({
                         "report_time": report_time,
+                        "notice": notice_text,    # ← ★保持しておく
                         "area_name": area_name,
                         "warnings": area.get("warnings", [])
                     })
@@ -41,6 +43,11 @@ def get_warning_info(json_path, target_region):
     
     for item in matched_areas:
         output_lines.append(f"\n■ 対象地域: {item['area_name']} （発表日時: {item['report_time']}）")
+        
+        # ★もし notice が存在していれば、テキストに含めて表示する
+        if item.get("notice"):
+            output_lines.append(f"⚠️ お知らせ: {item['notice']}")
+
         warnings = item["warnings"]
         if warnings:
             for w in warnings:

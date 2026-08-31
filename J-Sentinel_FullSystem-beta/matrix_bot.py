@@ -62,6 +62,13 @@ async def message_callback(room, event):
         except Exception as e:
             result_text = f"エラーが発生しました: {e}"
         
+        # --- 文字数が多すぎる場合のガード処理 ---
+        if len(result_text) > 2000:
+            result_text = (
+                f"⚠️ 「{target_region}」は対象範囲が広いため、発表されている警報・注意報のデータ量が膨大です（約{len(result_text)}文字）。\n"
+                "チャットが埋まってしまうため、市町村名など（例: 「帯広市の気象情報は？」など）でより細かく指定して検索してください。"
+            )
+
         # Matrixルームへ返信を送信
         await client.room_send(
             room_id=room.room_id,

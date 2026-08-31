@@ -10,42 +10,45 @@ DATABASE_DIR = BASE_DIR / "database"
 WARNING_MAP_URL = "https://www.jma.go.jp/bosai/warning/data/r8/map.json"
 
 def load_dictionaries(base_dir: Path):
-    """codemaster フォルダ内の areakisyou.csv から辞書を作成する"""
+    """codemaster フォルダ内の areakisyou.csv および areakisyou2.csv から辞書を作成する"""
     area_dict = {}
     
-    # codemaster 内のパスを最優先で候補に追加
-    candidate_paths = [
-        base_dir / "codemaster" / "areakisyou.csv",
-        base_dir / "areakisyou.csv",
-        base_dir / "database" / "areakisyou.csv",
-        Path("codemaster/areakisyou.csv"),
-    ]
+    # 読み込むCSVファイルのリスト（areakisyou と areakisyou2）
+    csv_filenames = ["areakisyou.csv", "areakisyou2.csv"]
     
-    area_csv = None
-    for path in candidate_paths:
-        if path.exists():
-            area_csv = path
-            break
-            
-    if area_csv and area_csv.exists():
-        try:
-            with open(area_csv, mode="r", encoding="utf-8-sig", errors="ignore") as f:
-                reader = csv.reader(f)
-                for idx, row in enumerate(reader):
-                    if idx < 2:
-                        continue
-                    if len(row) > 1:
-                        code = row[0].strip()
-                        name = row[1].strip()
-                        if code and name and code != "nan" and name != "nan":
-                            area_dict[code] = name
-                            if len(code) == 7 and code.endswith("0"):
-                                area_dict[code[:-1]] = name
-            print(f"[INFO] areakisyou.csv を読み込みました（登録件数: {len(area_dict)}件）: {area_csv.name}")
-        except Exception as e:
-            print(f"[WARN] areakisyou.csv の読み込みに失敗しました: {e}")
-    else:
-        print("[WARN] codemaster/areakisyou.csv が見つかりません。")
+    for filename in csv_filenames:
+        candidate_paths = [
+            base_dir / "codemaster" / filename,
+            base_dir / filename,
+            base_dir / "database" / filename,
+            Path(f"codemaster/{filename}"),
+        ]
+        
+        target_csv = None
+        for path in candidate_paths:
+            if path.exists():
+                target_csv = path
+                break
+                
+        if target_csv and target_csv.exists():
+            try:
+                with open(target_csv, mode="r", encoding="utf-8-sig", errors="ignore") as f:
+                    reader = csv.reader(f)
+                    for idx, row in enumerate(reader):
+                        if idx < 2:  # ヘッダー行などをスキップ
+                            continue
+                        if len(row) > 1:
+                            code = row[0].strip()
+                            name = row[1].strip()
+                            if code and name and code != "nan" and name != "nan":
+                                area_dict[code] = name
+                                if len(code) == 7 and code.endswith("0"):
+                                    area_dict[code[:-1]] = name
+                print(f"[INFO] {target_csv.name} を読み込みました（累計登録件数: {len(area_dict)}件）")
+            except Exception as e:
+                print(f"[WARN] {target_csv.name} の読み込みに失敗しました: {e}")
+        else:
+            print(f"[WARN] codemaster/{filename} が見つかりません。")
 
     # keiho.csv の読み込み
     keiho_dict = {}

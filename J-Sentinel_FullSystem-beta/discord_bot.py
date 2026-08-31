@@ -49,7 +49,22 @@ async def on_message(message):
         except Exception as e:
             result_text = f"エラーが発生しました: {e}"
         
-        await message.channel.send(result_text)
+        # --- ここから送信処理（文字数制限・エラー対策） ---
+        try:
+            if len(result_text) > 3900:
+                await message.channel.send(
+                    f"⚠️ 「{target_region}」の気象情報はデータ量が多すぎるため、"
+                    "Discordの送信文字数制限（4000文字）を超過しました。\n"
+                    "（より細かい地域を指定して検索してください）"
+                )
+            else:
+                await message.channel.send(result_text)
+                
+        except discord.errors.HTTPException as e:
+            if e.code == 50035:
+                await message.channel.send("⚠️ メッセージの文字数が上限を超えたため送信できませんでした。")
+            else:
+                await message.channel.send(f"⚠️ メッセージの送信中にエラーが発生しました（コード: {e.code}）")
 
     await bot.process_commands(message)
 
