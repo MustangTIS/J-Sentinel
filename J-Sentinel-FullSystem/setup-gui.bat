@@ -4,11 +4,16 @@ setlocal
 cd /d "%~dp0"
 
 echo ==========================================
-echo      BOUSAI - Boot Loader
+echo        BOUSAI - Boot Loader
+echo ==========================================
+echo  ..Booting J-Sentinel 
+echo       Advanced Disaster Prevention System
 echo ==========================================
 echo [Status]  : Initializing system...
 echo [Author]  : Mustang_TIS
 echo ==========================================
+echo 　　//J-Sentinel ～ 高度防災システム//
+echo 　　　　//..セットアップ起動//
 echo.
 
 :PYTHON_CHECK
@@ -51,7 +56,7 @@ if %errorlevel% neq 0 (
 
 :BOOT_Guardian
 if exist "js_main_gui_setup.py" (
-    echo [Step 3] Launching Guardian System...
+    echo [Step 3] Launching Sentinel System...
     echo.
     
     :: 実行

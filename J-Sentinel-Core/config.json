@@ -13,10 +13,14 @@
     "warning": {
       "enabled": true,
       "script": "fetch_warning.py"
+    },
+    "forecast": {
+      "enabled": true,
+      "script": "fetch_forecast.py"
     }
   },
   "retention": {
-    "auto_clean_enabled": true,
+    "auto_clean_enabled": false,
     "keep_days": 90
   }
 }

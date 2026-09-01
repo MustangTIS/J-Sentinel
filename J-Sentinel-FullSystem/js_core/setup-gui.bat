@@ -4,11 +4,16 @@ setlocal
 cd /d "%~dp0"
 
 echo ==========================================
-echo      BOUSAI - Boot Loader
+echo        BOUSAI - Boot Loader
+echo ==========================================
+echo  ..Booting J-Sentinel 
+echo       Advanced Disaster Prevention System
 echo ==========================================
 echo [Status]  : Initializing system...
 echo [Author]  : Mustang_TIS
 echo ==========================================
+echo 　　//J-Sentinel ～ 高度防災システム//
+echo 　　  //..コアシステムセットアップ起動//
 echo.
 
 :PYTHON_CHECK
@@ -37,11 +42,12 @@ echo [Status] Using command: %PY%
 
 :LIBRARY_CHECK
 echo [Step 2] Checking Libraries...
-:: 2>&1 を外して、エラーが出たら画面で見えるようにします
-%PY% -c "import psutil, requests, PIL, customtkinter"
+:: 2>&1 を外して、エラーが出たら画面で見えるようにします (nioを追加)
+%PY% -c "import psutil, requests, PIL, customtkinter, nio, pandas"
 if %errorlevel% neq 0 (
     echo [Notice] 不足しているライブラリをインストールします...
-    %PY% -m pip install psutil requests Pillow customtkinter --prefer-binary
+    :: matrix-nio を追加
+    %PY% -m pip install psutil requests Pillow customtkinter discord matrix-nio pandas --prefer-binary
     if %errorlevel% neq 0 (
         echo [Error] インストールに失敗しました。
         pause
@@ -49,12 +55,12 @@ if %errorlevel% neq 0 (
 )
 
 :BOOT_Guardian
-if exist "js_gui_setup.py" (
-    echo [Step 3] Launching Guardian System...
+if exist "js_main_gui_setup.py" (
+    echo [Step 3] Launching Sentinel System...
     echo.
     
     :: 実行
-    %PY% "js_gui_setup.py"
+    %PY% "js_main_gui_setup.py"
     
     echo.
     echo ------------------------------------------

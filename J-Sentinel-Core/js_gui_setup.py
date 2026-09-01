@@ -18,7 +18,7 @@ class JSentinelSetupApp:
   def __init__(self, root):
     self.root = root
     self.root.title("J-Sentinel Core Setup")
-    self.root.geometry("480x610")
+    self.root.geometry("480x640")  # タスク追加に伴い高さを微調整
     self.root.resizable(False, False)
 
     # アイコンの設定（存在する場合のみ適用）
@@ -44,6 +44,7 @@ class JSentinelSetupApp:
             "info": {"enabled": True, "script": "fetch_info.py"},
             "quake": {"enabled": True, "script": "fetch_quake.py"},
             "warning": {"enabled": True, "script": "fetch_warning.py"},
+            "forecast": {"enabled": True, "script": "fetch_forecast.py"},
         },
         "retention": {"auto_clean_enabled": False, "keep_days": 90},
     }
@@ -51,7 +52,14 @@ class JSentinelSetupApp:
     if CONFIG_PATH.exists():
       try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-          return json.load(f)
+          loaded = json.load(f)
+          # 万が一既存のconfigにforecastタスクがない場合のフォールバック（安全対策）
+          if "tasks" in loaded and "forecast" not in loaded["tasks"]:
+            loaded["tasks"]["forecast"] = {
+                "enabled": True,
+                "script": "fetch_forecast.py",
+            }
+          return loaded
       except Exception as e:
         messagebox.showwarning(
             "警告",
@@ -88,10 +96,24 @@ class JSentinelSetupApp:
       self.config["debug_mode"] = self.debug_var.get()
       self.config["interval_seconds"] = interval
 
-      self.config["tasks"]["info"]["enabled"] = self.task_info_var.get()
-      self.config["tasks"]["quake"]["enabled"] = self.task_quake_var.get()
-      self.config["tasks"]["warning"]["enabled"] = self.task_warning_var.get()
+      # tasks辞書が存在しない場合の備え
+      if "tasks" not in self.config:
+        self.config["tasks"] = {}
 
+      # 各タスクの有効/無効状態の更新（キーが存在しない場合も考慮）
+      for t_key, var_obj, script_name in [
+          ("info", self.task_info_var, "fetch_info.py"),
+          ("quake", self.task_quake_var, "fetch_quake.py"),
+          ("warning", self.task_warning_var, "fetch_warning.py"),
+          ("forecast", self.task_forecast_var, "fetch_forecast.py"),
+      ]:
+        if t_key not in self.config["tasks"]:
+          self.config["tasks"][t_key] = {}
+        self.config["tasks"][t_key]["enabled"] = var_obj.get()
+        self.config["tasks"][t_key]["script"] = script_name
+
+      if "retention" not in self.config:
+        self.config["retention"] = {}
       self.config["retention"][
           "auto_clean_enabled"
       ] = self.auto_clean_var.get()
@@ -114,6 +136,7 @@ class JSentinelSetupApp:
     self.task_info_var.set(tasks.get("info", {}).get("enabled", True))
     self.task_quake_var.set(tasks.get("quake", {}).get("enabled", True))
     self.task_warning_var.set(tasks.get("warning", {}).get("enabled", True))
+    self.task_forecast_var.set(tasks.get("forecast", {}).get("enabled", True))
 
     retention = self.config.get("retention", {})
     self.auto_clean_var.set(retention.get("auto_clean_enabled", False))
@@ -145,9 +168,6 @@ class JSentinelSetupApp:
       desktop_dir = Path(os.path.expanduser("~")) / "Desktop"
       shortcut_path = desktop_dir / "J-Sentinel Core.lnk"
 
-      # PowerShellを使わず、Pythonの標準機能（comtypes もしくは ctypes経由のWScript.Shell）で作成する
-      # Python標準の win32com が入っていれば一番良いですが、標準ライブラリだけでやるため
-      # 一時的な .vbs スクリプトを生成して実行して即消す、という最も確実で確実な手を使います。
       vbs_path = BASE_DIR / "make_shortcut.vbs"
       ico_str = str(ICON_PATH) if ICON_PATH.exists() else ""
 
@@ -160,13 +180,11 @@ sc.WorkingDirectory = "{BASE_DIR}"
         vbs_content += f'sc.IconLocation = "{ico_str}"\n'
       vbs_content += "sc.Save()\n"
 
-      # VBSファイルを書き出して実行
       with open(vbs_path, "w", encoding="cp932") as f:
         f.write(vbs_content)
 
       subprocess.run(["cscript", "//nologo", str(vbs_path)], check=True)
 
-      # 用済みのVBSファイルを削除
       if vbs_path.exists():
         vbs_path.unlink()
 
@@ -176,7 +194,6 @@ sc.WorkingDirectory = "{BASE_DIR}"
           f"({shortcut_path.name})",
       )
     except Exception as e:
-      # 念のため例外時もVBSが残らないように掃除
       if "vbs_path" in locals() and vbs_path.exists():
         try:
           vbs_path.unlink()
@@ -236,6 +253,14 @@ sc.WorkingDirectory = "{BASE_DIR}"
         task_frame,
         text="気象警報タスク (fetch_warning.py)",
         variable=self.task_warning_var,
+    ).pack(anchor=tk.W, pady=2)
+
+    # 追加: 天気予報タスク
+    self.task_forecast_var = tk.BooleanVar()
+    ttk.Checkbutton(
+        task_frame,
+        text="天気予報タスク (fetch_forecast.py)",
+        variable=self.task_forecast_var,
     ).pack(anchor=tk.W, pady=2)
 
     # --- 3. データ保持 (リテンション) 設定 ---

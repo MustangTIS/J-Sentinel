@@ -100,7 +100,7 @@ class JSentinelSetup(ctk.CTk):
 
     def create_widgets(self):
         # --- タイトル ---
-        self.label_title = ctk.CTkLabel(self, text="J-Sentinel 初期設定・マルチ配信マネージャー", font=("Yu Gothic", 20, "bold"))
+        self.label_title = ctk.CTkLabel(self, text="J-Sentinel ～高度防災システム 初期設定・マルチ配信マネージャー", font=("Yu Gothic", 20, "bold"))
         self.label_title.pack(pady=(10, 5))
 
         # --- Discord Bot 共通設定エリア ---

@@ -1,5 +1,5 @@
 {
-  "debug_mode": true,
+  "debug_mode": false,
   "interval_seconds": 60,
   "tasks": {
     "info": {
@@ -20,7 +20,7 @@
     }
   },
   "retention": {
-    "auto_clean_enabled": true,
+    "auto_clean_enabled": false,
     "keep_days": 90
   }
 }

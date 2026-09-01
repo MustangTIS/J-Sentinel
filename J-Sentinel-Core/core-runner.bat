@@ -1,15 +1,10 @@
 @echo off
 setlocal
-:: 実行されている場所へ移動
-cd /d "%~dp0"
+cd /d %~dp0
 
 echo ==========================================
-echo      BOUSAI - Boot Loader
+echo   J-Sentinel ～ 高度防災システム - Booter
 echo ==========================================
-echo [Status]  : Initializing system...
-echo [Author]  : Mustang_TIS
-echo ==========================================
-echo.
 
 :PYTHON_CHECK
 echo [Step 1] Checking Python...
@@ -27,8 +22,7 @@ if %errorlevel% equ 0 (
 )
 
 :: どちらもだめな場合
-echo [Error] Pythonが見つかりません。
-echo 公式サイトからインストールし、'Add Python to PATH' にチェックを入れてください。
+echo [Error] Python path is not found.
 pause
 exit /b
 
@@ -38,34 +32,32 @@ echo [Status] Using command: %PY%
 :LIBRARY_CHECK
 echo [Step 2] Checking Libraries...
 :: 2>&1 を外して、エラーが出たら画面で見えるようにします (nioを追加)
-%PY% -c "import psutil, requests, PIL, customtkinter, nio"
+%PY% -c "import psutil, requests, PIL, customtkinter, nio, pandas"
 if %errorlevel% neq 0 (
     echo [Notice] 不足しているライブラリをインストールします...
     :: matrix-nio を追加
-    %PY% -m pip install psutil requests Pillow customtkinter discord matrix-nio --prefer-binary
+    %PY% -m pip install psutil requests Pillow customtkinter discord matrix-nio pandas --prefer-binary
     if %errorlevel% neq 0 (
         echo [Error] インストールに失敗しました。
         pause
     )
 )
 
-:BOOT_Guardian
-if exist "js_main_gui_setup.py" (
-    echo [Step 3] Launching Guardian System...
+:BOOT_MAIN
+if exist "run_sentinel.py" (
+    echo [Step 3] Launching System...
     echo.
     
-    :: 実行
-    %PY% "js_main_gui_setup.py"
+    :: 決定したコマンド (%PY%) で実行
+    cmd /c %PY% "run_sentinel.py"
     
     echo.
     echo ------------------------------------------
-    echo [System] プロセスが終了しました。 Code: %errorlevel%
+    echo [System] Process finished. Code: %errorlevel%
     echo ------------------------------------------
     pause
 ) else (
-    echo [Error] js_main_gui_setup.py が見つかりません。
-    echo 現在地: %cd%
-    echo フォルダ内に js_main_gui_setup.py があるか確認してください。
+    echo [Error] run_sentinel.py not found.
     pause
 )
 

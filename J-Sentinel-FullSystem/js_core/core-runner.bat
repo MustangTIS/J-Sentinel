@@ -31,21 +31,25 @@ echo [Status] Using command: %PY%
 
 :LIBRARY_CHECK
 echo [Step 2] Checking Libraries...
-:: 変数 %PY% を使ってチェック
-%PY% -c "import psutil, requests, PIL, customtkinter" >nul 2>&1
+:: 2>&1 を外して、エラーが出たら画面で見えるようにします (nioを追加)
+%PY% -c "import psutil, requests, PIL, customtkinter, nio, pandas"
 if %errorlevel% neq 0 (
-    echo [Notice] Installing missing libraries...
-    %PY% -m pip install --upgrade pip
-    %PY% -m pip install psutil requests Pillow customtkinter --prefer-binary
+    echo [Notice] 不足しているライブラリをインストールします...
+    :: matrix-nio を追加
+    %PY% -m pip install psutil requests Pillow customtkinter discord matrix-nio pandas --prefer-binary
+    if %errorlevel% neq 0 (
+        echo [Error] インストールに失敗しました。
+        pause
+    )
 )
 
 :BOOT_MAIN
-if exist "bot.py" (
+if exist "run_sentinel.py" (
     echo [Step 3] Launching System...
     echo.
     
     :: 決定したコマンド (%PY%) で実行
-    cmd /c %PY% "bot.py"
+    cmd /c %PY% "run_sentinel.py"
     
     echo.
     echo ------------------------------------------
@@ -53,7 +57,7 @@ if exist "bot.py" (
     echo ------------------------------------------
     pause
 ) else (
-    echo [Error] bot.py not found.
+    echo [Error] run_sentinel.py not found.
     pause
 )
 

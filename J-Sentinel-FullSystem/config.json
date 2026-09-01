@@ -1,20 +1,28 @@
 {
     "bot_settings": {
-        "token": "YourDiscordBotKey"
+        "token": ""
     },
     "monitor_base_dir": [
         "js_core/database/info/etc",
         "js_core/database/info/emergency/rain_warning",
+        "js_core/database/info/emergency/wind_heavy",
+        "js_core/database/info/emergency/volcano1",
+        "js_core/database/info/emergency/volcano2",
         "js_core/database/info/emergency/landslide",
         "js_core/database/info/emergency/rain_record",
-        "js_core/database/info/emergency/wind_heavy",
-        "js_core/database/info/emergency/defender",
-        "js_core/database/info/warning/rain_heavy",
+        "js_core/database/info/warning/rain_heavy1",
+        "js_core/database/info/warning/river",
+        "js_core/database/info/warning/snow",
+        "js_core/database/info/warning/rain_heavy2",
         "js_core/database/info/warning/typhoon",
         "js_core/database/info/warning/tornado",
-        "js_core/database/info/warning/river",
-        "js_core/database/info/weather/whole",
+        "js_core/database/info/emergency/defender",
+        "js_core/database/info/weather/whole1",
+        "js_core/database/info/weather/whole2",
         "js_core/database/info/attention/hotspot",
+        "js_core/database/info/attention/yellow",
+        "js_core/database/info/attention/pollen",
+        "js_core/database/info/enjoy/sakura",
         "js_core/database/quake/etc",
         "js_core/database/quake/tsunami",
         "js_core/database/quake/world",
@@ -23,7 +31,7 @@
     "destinations": [
         {
             "style": "disembed",
-            "url": "YourDiscordWebhoek",
+            "url": "",
             "room": "",
             "token": "",
             "handle": "",
