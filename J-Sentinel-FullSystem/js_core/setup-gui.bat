@@ -55,12 +55,12 @@ if %errorlevel% neq 0 (
 )
 
 :BOOT_Guardian
-if exist "js_main_gui_setup.py" (
+if exist "js_gui_setup.py" (
     echo [Step 3] Launching Sentinel System...
     echo.
     
     :: é¿çs
-    %PY% "js_main_gui_setup.py"
+    %PY% "js_gui_setup.py"
     
     echo.
     echo ------------------------------------------

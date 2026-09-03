@@ -28,11 +28,21 @@ class JSentinelSetup(ctk.CTk):
         if os.path.exists(os.path.join(self.base_dir, "icon.ico")):
             self.iconbitmap(os.path.join(self.base_dir, "icon.ico"))
 
-        # 状態変数
+       # 状態変数
         self.checkbox_vars = {}  
-        self.checkbox_widgets = {} # チェックボックスのウィジェット参照を保持
+        self.checkbox_widgets = {} 
         self.csv_data_map = {}   
         self.destination_rows = []
+
+        # 💡 【ここを追加】
+        self.platform_map = {
+            "Discord (Embed)": "disembed",
+            "Discord (Simple)": "dissimple",
+            "Slack": "slack",
+            "Matrix": "matrix",
+            "Bluesky": "bluesky"
+        }
+        self.reverse_platform_map = {v: k for k, v in self.platform_map.items()}
 
         self.create_widgets()
         self.load_all_csvs()
@@ -238,14 +248,13 @@ class JSentinelSetup(ctk.CTk):
 
         ctk.CTkLabel(top_row, text="形式:", font=("Yu Gothic", 10)).pack(side="left", padx=(0, 4))
         
-        platform_var = ctk.StringVar(value=data.get("platform", data.get("style", "disembed")))
+        # 💡 内部値を表示名に変換してセット
+        raw_platform = data.get("platform", data.get("style", "disembed"))
+        initial_display = self.reverse_platform_map.get(raw_platform, "Discord (Embed)")
+        
+        platform_var = ctk.StringVar(value=initial_display)
 
-        def remove_card():
-            card.destroy()
-            if card_data in self.destination_rows:
-                self.destination_rows.remove(card_data)
-
-        btn_del = ctk.CTkButton(top_row, text="削除", width=50, height=24, fg_color="#d9534f", hover_color="#c9302c", command=remove_card)
+        btn_del = ctk.CTkButton(top_row, text="削除", width=50, height=24, fg_color="#d9534f", hover_color="#c9302c", command=lambda: [card.destroy(), self.destination_rows.remove(card_data) if card_data in self.destination_rows else None])
         btn_del.pack(side="right")
 
         fields_frame = ctk.CTkFrame(card, fg_color="transparent")
@@ -264,7 +273,10 @@ class JSentinelSetup(ctk.CTk):
             for widget in (url_entry, room_entry, token_entry, handle_entry, pass_entry):
                 widget.pack_forget()
 
-            sel = platform_var.get()
+            # 💡 表示名から内部の値に逆変換して条件分岐に使う
+            display_name = platform_var.get()
+            sel = self.platform_map.get(display_name, display_name)
+
             if sel in ["disembed", "dissimple", "slack"]:
                 url_entry.configure(placeholder_text="Webhook URL")
                 url_entry.pack(fill="x", pady=2)
@@ -280,10 +292,17 @@ class JSentinelSetup(ctk.CTk):
                 pass_entry.pack(fill="x", pady=2)
 
         platform_var.trace_add("write", update_fields)
-        platform_menu = ctk.CTkOptionMenu(top_row, values=["disembed", "dissimple", "slack", "matrix", "bluesky"], variable=platform_var, width=110, height=24)
+        
+        # 💡 ここで「表示名のリスト」を渡す
+        platform_menu = ctk.CTkOptionMenu(
+            top_row, 
+            values=list(self.platform_map.keys()), 
+            variable=platform_var, 
+            width=130, 
+            height=24
+        )
         platform_menu.pack(side="left", padx=4)
 
-        # 🟢 先に update_fields を呼んでウィジェットを適切に表示状態にしてから値を挿入する
         update_fields()
 
         if data.get("url"): url_entry.insert(0, data.get("url"))
@@ -475,8 +494,12 @@ lnk.Save
 
         destinations_list = []
         for row in self.destination_rows:
+            # 💡 保存時に表示名から元の内部値（"disembed"など）に戻す
+            display_name = row["platform_var"].get()
+            internal_value = self.platform_map.get(display_name, display_name)
+
             destinations_list.append({
-                "style": row["platform_var"].get(),
+                "style": internal_value,  # ← ここを内部値にする
                 "url": row["url_entry"].get().strip(),
                 "room": row["room_entry"].get().strip(),
                 "token": row["token_entry"].get().strip(),
