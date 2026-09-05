@@ -156,8 +156,8 @@ class JSentinelSetupApp:
       messagebox.showerror("エラー", f"ファイルを開けませんでした:\n{e}")
 
   def create_desktop_shortcut(self):
-    """デスクトップに run_sentinel.bat のショートカットを作成する"""
-    target_bat = BASE_DIR / "run_sentinel.bat"
+    """デスクトップに core-runner のショートカットを作成する"""
+    target_bat = BASE_DIR / "core-runner.bat"
     if not target_bat.exists():
       messagebox.showerror(
           "エラー", f"起動用バッチが見つかりません:\n{target_bat}"
