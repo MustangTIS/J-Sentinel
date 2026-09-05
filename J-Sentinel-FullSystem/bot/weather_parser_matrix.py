@@ -1,6 +1,5 @@
-import csv
-import json
 import os
+import json
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 
@@ -65,6 +64,7 @@ def get_weather_text(json_path, codemaster_dir, target_region):
     target_office_data = None
     matched_area_name = ""
 
+    # 1. 厳密な一致・部分一致による検索
     for office_code, office_info in offices.items():
         for report in office_info.get("reports", []):
             for ts in report.get("timeSeries", []):
@@ -85,14 +85,18 @@ def get_weather_text(json_path, codemaster_dir, target_region):
         if target_office_data:
             break
 
+    # 2. フォールバックは「ユーザーが実際にその地域名を入力している場合」のみに限定する（Discord版と同一仕様）
     if not target_office_data:
-        for office_code, office_info in offices.items():
-            office_name = office_info.get("officeName", "")
-            if "釧路" in office_name or "十勝" in office_name or "帯広" in office_name:
-                target_office_data = office_info
-                matched_area_name = office_name
-                break
+        keywords = ["十勝", "帯広", "釧路", "東京", "札幌"]
+        if any(kw in target_region for kw in keywords):
+            for office_code, office_info in offices.items():
+                office_name = office_info.get("officeName", "")
+                if target_region in office_name or any(kw in office_name for kw in keywords if kw in target_region):
+                    target_office_data = office_info
+                    matched_area_name = office_name
+                    break
 
+    # 3. それでも見つからない場合はきっぱりエラーを返す
     if not target_office_data:
         return f"「{target_region}」に該当する天気予報データが見つかりませんでした。"
 
@@ -123,12 +127,13 @@ def get_weather_text(json_path, codemaster_dir, target_region):
             area_name = area.get("area", {}).get("name", "")
             area_code = area.get("area", {}).get("code", "")
 
+            # クリーンな判定条件（Discord版と同期）
             is_match = (
                 target_region in area_name or 
                 area_name in target_region or 
                 (target_local_name and target_local_name in area_name) or
                 (target_local_code and area_code == target_local_code) or
-                "十勝" in area_name or "帯広" in area_name
+                target_region in matched_area_name
             )
 
             if not is_match and len(daily_data) > 0:
@@ -218,10 +223,8 @@ def get_weather_text(json_path, codemaster_dir, target_region):
         if not current_temp:
             current_temp = daily_data[today_str]["temps"][0]
 
-    # --- Matrix向けテキスト構築（DiscordのEmbed構成を模倣） ---
+    # --- Matrix向けテキスト構築 ---
     lines = []
-    
-    # ヘッダー部分
     sub_info = []
     if current_temp:
         sub_info.append(f"🌡**{current_temp}**")
@@ -248,5 +251,8 @@ def get_weather_text(json_path, codemaster_dir, target_region):
         if info["pops"]:
             lines.append(f"  降水確率☔: {' '.join(info['pops'])}")
         lines.append("")
+
+    lines.append("-----------------------------------")
+    lines.append("（出典: 気象庁）")
 
     return "\n".join(lines).strip()
