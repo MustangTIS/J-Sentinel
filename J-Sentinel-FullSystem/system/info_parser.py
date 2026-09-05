@@ -17,6 +17,9 @@ def parse_info_json(data):
     if comment_text:
         description_parts.append(f"【詳細】\n{comment_text}")
     
+    # \n をつけずにそのまま追加
+    description_parts.append("（出典: 気象庁発表データ）")
+    
     description = "\n\n".join(description_parts)
 
     # カラー判定

@@ -18,13 +18,13 @@ def ensure_list(obj):
 def parse_quake_json(json_data, min_display="1"):
     """
     気象庁の地震・津波関連JSONを受け取り、
-    Discord等にそのまま流せる整形済みテキストを返すメイン関数
+    title, description, color を持つ辞書を返す
     """
     control = json_data.get("Control", {})
     head = json_data.get("Head", {})
     body = json_data.get("Body", {})
     c_title = control.get("Title", "")
-    h_title = head.get("Title", "")
+    h_title = head.get("Title", "地震情報")
 
     # --- A. 津波情報の場合 ---
     if "津波" in h_title or head.get("InfoKind") == "津波警報・注意報・予報":
@@ -64,7 +64,6 @@ def parse_quake_json(json_data, min_display="1"):
         obs_data_list.sort(key=lambda x: x["sort_key"], reverse=True)
 
         lines = [
-            f"【{h_title}】",
             f"発表時刻：{head.get('ReportDateTime', '不明')}",
             "----------------",
             f"概況：\n{headline}",
@@ -81,7 +80,13 @@ def parse_quake_json(json_data, min_display="1"):
             for d in obs_data_list:
                 lines.append(f"・{d['name']}：{d['val']}")
             
-        return "\n".join(lines)
+        lines.append("（出典: 気象庁発表データ）")
+
+        return {
+            "title": f"【{h_title}】",
+            "description": "\n".join(lines),
+            "color": 0xFF0000 if "警報" in h_title else 0xE67E22  # 津波警報は赤、注意報等はオレンジ
+        }
 
     # --- C. 遠地地震に関する情報の場合 ---
     elif "遠地地震" in h_title:
@@ -100,7 +105,6 @@ def parse_quake_json(json_data, min_display="1"):
         free_comment = comments.get("FreeFormComment", "")
 
         lines = [
-            "【遠地地震に関する情報】",
             f"発生時刻：{origin_time}",
             f"震源地 ：{hypocenter}（M{magnitude}）",
             f"津波影響：\n{tsunami_msg.strip()}",
@@ -111,7 +115,13 @@ def parse_quake_json(json_data, min_display="1"):
             lines.append(f"付随情報：{free_comment}")
             lines.append("----------------")
         lines.append("※海外で発生した大規模な地震の情報です。")
-        return "\n".join(lines)
+        lines.append("（出典: 気象庁発表データ）")
+
+        return {
+            "title": "【遠地地震に関する情報】",
+            "description": "\n".join(lines),
+            "color": 0x3498DB
+        }
 
     # --- B. 地震情報（震源・震度報）の場合 ---
     elif "震源" in c_title or "震度" in h_title:
@@ -139,7 +149,6 @@ def parse_quake_json(json_data, min_display="1"):
                     report_struct[city_int][pref_name][area_name].append(city.get("Name"))
 
         lines = [
-            "【地震情報（震源・震度報）】",
             f"発生時刻：{origin_time}",
             f"震源地 ：{hypocenter}（M{magnitude}）",
             f"最大震度：{max_int}",
@@ -157,6 +166,19 @@ def parse_quake_json(json_data, min_display="1"):
                     for area, cities in areas.items():
                         lines.append(f" [{area}] {' '.join(cities)}")
 
-        return "\n".join(lines)
+        lines.append("（出典: 気象庁発表データ）")
+
+        # マックスの震度に応じて色を変えるとDiscordで分かりやすい！
+        color = 0x3498DB # デフォルト青
+        if max_int in ["5弱", "5-", "5強", "5+"]:
+            color = 0xE67E22 # オレンジ
+        elif max_int in ["6弱", "6-", "6強", "6+", "7"]:
+            color = 0xFF0000 # 赤
+
+        return {
+            "title": f"【{h_title}】",
+            "description": "\n".join(lines),
+            "color": color
+        }
 
     return None
