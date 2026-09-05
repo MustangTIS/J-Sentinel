@@ -1,6 +1,6 @@
 <div align="center">
   <img src="Asset/icon.jpg" alt="J-Sentinel Logo" width="160" height="160">
-  <h1>J-Sentinel ～ 高度防災システム (v0.30.5)</h1>
+  <h1>J-Sentinel ～ 高度防災システム (v1.0.0)</h1>
   <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信・対話型ボット統合オーケストレーターシステム</strong></p>
 </div>
 
@@ -10,7 +10,7 @@
 
 最新のフルシステム版パッケージ（コアエンジン、マルチ配信モジュール、対話型ボット、GUIマネージャー同梱）は、以下のリンクからダウンロードできます。
 
-👉 **[J-Sentinel_FullSystem_v0.30.5.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v0.30.5/J-Sentinel-FullSystem_v0.30.5.zip)**
+👉 **[J-Sentinel-FullSystem_v1.0.0.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.0.0/J-Sentinel-FullSystem_v1.0.0.zip)**
 
 ---
 
@@ -41,6 +41,7 @@
   ┗ J-Sentinel-FullSystem/    # フルシステム版（マルチ配信・GUI・Bot統合）
       ┣ config.json           # システム全体設定（トークン・配信先等）
       ┣ setup-gui.bat         # GUI設定・マルチ配信先マネージャー起動用バッチ
+      ┣ core-runner.bat       # システム全体の統合起動用バッチ
       ┣ J-sentinel.bat        # メイン・プッシュ通知システム起動用バッチ
       ┣ bot.bat               # 対話型チャットボット (Discord/Matrix) 起動用バッチ
       ┣ J-Sentinel_main.py    # メイン・オーケストレーター
@@ -53,7 +54,7 @@
       ├─ bot/                 # 対話型ボットモジュール群
       │   ┣ discord_bot.py    # Discord インタラクティブ・コールバックボット
       │   ┣ matrix_bot.py     # Matrix インタラクティブ・コールバックボット
-      │   ┣ warning_parser.py # 気象警報・注意報JSON パーサ＆地域検索
+      │   ┣ warning_parser.py # 気象警報・注意報JSON パーサ＆地域検索（レベル別グルーピング対応）
       │   ┣ weather_parser.py # 天気予報JSON パーサ (Discord Embed用)
       │   ┗ weather_parser_matrix.py # 天気予報JSON パーサ (Matrix用)
       └─ js_core/             # コアインジェストモジュール群
@@ -69,7 +70,7 @@
 * **堅牢なプロセス管理**: サブプロセス実行時のタイムアウト制御により、ネットワーク遅延や大量データ処理時のデッドロックを回避。
 * **マルチプラットフォーム対応**: 検知した災害・気象情報を Discord (Embed/Simple・改行対応)、Slack、Matrix、Bluesky へシームレスにディスパッチ。
 * **対話型チャットボット**: DiscordやMatrix上から「帯広市の気象情報は？」や「帯広の天気は？」などのメンション・問い合せて即座に情報を取得可能。
-* **CustomTkinter製 GUIマネージャー**: `setup-gui.bat` により、巡回間隔、監視対象、各SNS配信先のトークン等を直感的に設定可能。
+* **CustomTkinter製 GUIマネージャー**: `setup-gui.bat` により、巡回間隔、監視対象、各SNS配信先のトークンや表示名を直感的に設定可能。
 
 ---
 
@@ -86,26 +87,21 @@
 
 
 3. **メイン・プッシュ通知システムの本格稼働**
-* `J-sentinel.bat` を実行すると、メインランナーおよびインジェスト基盤が連動して常駐を開始し、新着情報を各プラットフォームへ自動プッシュ通知します。
+* `core-runner.bat` または `J-sentinel.bat` を実行すると、メインランナーおよびインジェスト基盤が連動して常駐を開始し、新着情報を各プラットフォームへ自動プッシュ通知します。
 
 
 4. **対話型チャットボットの利用**
 * 必要に応じて `bot.bat` を起動することで、チャットからの対話型情報照会が利用可能になります。
-  * ※DiscordとMatrixのみ対応。
-    * 対応しているチャットは
-      * 天気情報　○○の天気は　天気/○○
-      * 期初情報　○○の気象情報は　気象/00
+* ※DiscordとMatrixのみ対応。
+* **対応しているチャットの例**:
+* 天気情報: `○○の天気は` または `天気/○○`
+* 気象情報: `○○の気象情報は` または `気象/○○`
 
 
----
 
-## 🗺️ 今後の開発予定 (Roadmap)
 
-* [x] **インフラストラクチャの確立**: 気象庁データの安全なインジェストとローカル蓄積基盤の実装。
-* [x] **マルチプラットフォーム通知**: Discord、Slack、Matrix、Blueskyへの配信ブリッジ統合。
-* [x] **対話型ボット機能**: Discord/Matrixを通じたリアルタイム情報照会機能の実装。
-* [ ] **検知フィルターの高度化**: 蓄積データやリアルタイムデータから、特定条件をより柔軟にフィルタリング・検知する仕組みの強化。
-* [ ] **ダッシュボード・可視化**: 蓄積されたログや状態を直感的に確認できるUI/UXのブラッシュアップ。
+
+
 
 ---
 
@@ -123,6 +119,13 @@
 * Matrixチャットボット (`matrix_bot.py`) および天気予報パーサの統合。
 * 監視ガードレールの最適化と通知・配信の安定化向上。
 * 起動用バッチファイルの整理（`J-sentinel.bat` / `bot.bat`）。
+
+
+* **v1.0.0**:
+* 気象警報インジェスト・パーサの強化（お知らせ `notice` の取得対応、解除情報の厳密な除外）。
+* マスターCSV（`keiho.csv`）からの危険レベル（`kikenlv`）動的連携と出力時のレベル別グルーピング（降順）対応。
+* GUI設定マネージャーにおけるマルチプラットフォームの内部値・表示名マッピング機構の導入。
+* 起動・運用バッチの `core-runner.bat` への集約とGUIショートカットの追従。
 
 
 
