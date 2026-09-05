@@ -17,7 +17,7 @@ from system import info_parser
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.1.0"
 REPO_URL = "MustangTIS/J-Sentinel"
 
 def check_for_updates():
