@@ -1,6 +1,6 @@
 <div align="center">
   <img src="Asset/icon.jpg" alt="J-Sentinel Logo" width="160" height="160">
-  <h1>J-Sentinel ～ 高度防災システム (v1.0.0)</h1>
+  <h1>J-Sentinel ～ 高度防災システム (v1.1.0)</h1>
   <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信・対話型ボット統合オーケストレーターシステム</strong></p>
 </div>
 
@@ -10,7 +10,7 @@
 
 最新のフルシステム版パッケージ（コアエンジン、マルチ配信モジュール、対話型ボット、GUIマネージャー同梱）は、以下のリンクからダウンロードできます。
 
-👉 **[J-Sentinel-FullSystem_v1.0.0.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.0.0/J-Sentinel-FullSystem_v1.0.0.zip)**
+👉 **[J-Sentinel-FullSystem_v1.1.0.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.1.0/J-Sentinel-FullSystem_v1.1.0.zip)**
 
 ---
 
@@ -127,6 +127,5 @@
 * GUI設定マネージャーにおけるマルチプラットフォームの内部値・表示名マッピング機構の導入。
 * 起動・運用バッチの `core-runner.bat` への集約とGUIショートカットの追従。
 
-
-
-```
+* **v1.1.0**:
+* 気象庁の利用規約に基づき気象庁からのソースだという情報を語尾に記載するスクリプトを追加。
