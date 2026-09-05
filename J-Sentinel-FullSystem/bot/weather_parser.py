@@ -9,7 +9,7 @@ def load_area_hierarchy(codemaster_dir):
     """
     areakisyou.csv と areakisyou2.csv から、市町村名 -> 属する地域名・コードのマップを作る
     """
-    city_to_local = {} 
+    city_to_local = {} # 例: "帯広市" -> {"local_code": "014032", "local_name": "十勝中部"}
     local_codes = set()
 
     city_csv = os.path.join(codemaster_dir, "areakisyou.csv")
@@ -17,13 +17,14 @@ def load_area_hierarchy(codemaster_dir):
         try:
             df = pd.read_csv(city_csv, header=None, encoding="utf-8", encoding_errors="ignore")
             for idx, row in df.iterrows():
-                if idx < 2: continue 
+                if idx < 2: continue # ヘッダースキップ
                 if len(row) >= 5:
-                    city_name = str(row.iloc[2]).strip() 
-                    city_code = str(row.iloc[0]).strip() 
-                    local_code = str(row.iloc[4]).strip() 
+                    city_name = str(row.iloc[2]).strip() # 例: 帯広市
+                    city_code = str(row.iloc[0]).strip() # 例: 0120700
+                    local_code = str(row.iloc[4]).strip() # 例: 014032
                     if city_name and local_code and local_code != "nan":
                         city_to_local[city_name] = local_code
+                        # 「北海道帯広市」などのパターンにも対応
                         full_city_name = str(row.iloc[1]).strip()
                         if full_city_name:
                             city_to_local[full_city_name] = local_code
@@ -59,6 +60,7 @@ def get_weather_info(json_path, codemaster_dir, target_region):
 
     city_to_local, local_name_map = load_area_hierarchy(codemaster_dir)
 
+    # ターゲットが市町村名なら対応するローカルコード（十勝中部など）を割り出す
     target_local_code = city_to_local.get(target_region)
     target_local_name = local_name_map.get(target_local_code, "") if target_local_code else ""
 
@@ -66,7 +68,7 @@ def get_weather_info(json_path, codemaster_dir, target_region):
     target_office_data = None
     matched_area_name = ""
 
-    # 1. 厳密な一致・部分一致による検索
+    # 気象庁JSON内を走査して、該当するエリアデータを探す
     for office_code, office_info in offices.items():
         office_name = office_info.get("officeName", "")
         
@@ -76,31 +78,32 @@ def get_weather_info(json_path, codemaster_dir, target_region):
                     area_name = area.get("area", {}).get("name", "")
                     area_code = area.get("area", {}).get("code", "")
                     
+                    # 1. エリア名やコードが直接一致するか
+                    # 2. 紐づいたローカル名（十勝中部など）が一致するか
                     if (target_region in area_name or area_name in target_region or 
                         (target_local_name and target_local_name in area_name) or
                         (target_local_code and area_code == target_local_code)):
                         target_office_data = office_info
                         matched_area_name = area_name
                         break
-                if target_office_data: break
-            if target_office_data: break
-        if target_office_data: break
-
-    # 2. フォールバックは「ユーザーが実際にその地域名を入力している場合」のみに限定する
-    if not target_office_data:
-        # 入力されたワードに「十勝」「帯広」「釧路」「東京」などの主要な地名が含まれている場合のみ救済する
-        keywords = ["十勝", "帯広", "釧路", "東京", "札幌"]  # 必要に応じて追加・調整
-        if any(kw in target_region for kw in keywords):
-            for office_code, office_info in offices.items():
-                office_name = office_info.get("officeName", "")
-                if target_region in office_name or any(kw in office_name for kw in keywords if kw in target_region):
-                    target_office_data = office_info
-                    matched_area_name = office_name
+                if target_office_data:
                     break
+            if target_office_data:
+                break
+        if target_office_data:
+            break
 
-    # 3. それでも見つからない場合（あいうえお等）は、きっぱりエラーを返す
+    # もしオフィスデータが直で見つからなければ、十勝・釧路などの親オフィス（例: 釧路地方気象台 = 014000系）をフォールバックで探す
     if not target_office_data:
-        return f"「{target_region}」に該当する天気予報データが見つかりませんでした。"
+        for office_code, office_info in offices.items():
+            office_name = office_info.get("officeName", "")
+            if "釧路" in office_name or "十勝" in office_name or "帯広" in office_name:
+                target_office_data = office_info
+                matched_area_name = office_name
+                break
+
+    if not target_office_data:
+        return f"「{target_region}（関連地域: {target_local_name}）0」に該当する天気予報データが見つかりませんでした。"
 
     reports = target_office_data.get("reports", [])
     if not reports:
@@ -110,6 +113,7 @@ def get_weather_info(json_path, codemaster_dir, target_region):
     pub_office = latest_report.get("publishingOffice", "")
 
     now_jst = datetime.now(timezone(timedelta(hours=9)))
+
     daily_data = {}
 
     def get_bucket(d_str):
@@ -129,12 +133,13 @@ def get_weather_info(json_path, codemaster_dir, target_region):
             area_name = area.get("area", {}).get("name", "")
             area_code = area.get("area", {}).get("code", "")
 
+            # ターゲット地域、または紐づくローカル地域、あるいは十勝・全域のデータを拾う
             is_match = (
                 target_region in area_name or 
                 area_name in target_region or 
                 (target_local_name and target_local_name in area_name) or
                 (target_local_code and area_code == target_local_code) or
-                target_region in matched_area_name
+                "十勝" in area_name or "帯広" in area_name
             )
 
             if not is_match and len(daily_data) > 0:
@@ -263,7 +268,5 @@ def get_weather_info(json_path, codemaster_dir, target_region):
             value=val_text,
             inline=False
         )
-
-    embed.set_footer(text="出典: 気象庁")
 
     return embed

@@ -80,11 +80,7 @@ def parse_quake_json(json_data, min_display="1"):
             lines.append("--- 潮位観測値（高い順） ---")
             for d in obs_data_list:
                 lines.append(f"・{d['name']}：{d['val']}")
-                
-        lines.append("----------------")
-        lines.append("（出典: 気象庁）")
-        
-        
+            
         return "\n".join(lines)
 
     # --- C. 遠地地震に関する情報の場合 ---
@@ -115,8 +111,6 @@ def parse_quake_json(json_data, min_display="1"):
             lines.append(f"付随情報：{free_comment}")
             lines.append("----------------")
         lines.append("※海外で発生した大規模な地震の情報です。")
-        lines.append("----------------")
-        lines.append("（出典: 気象庁）")
         return "\n".join(lines)
 
     # --- B. 地震情報（震源・震度報）の場合 ---
@@ -162,8 +156,6 @@ def parse_quake_json(json_data, min_display="1"):
                 for pref, areas in report_struct[int_level].items():
                     for area, cities in areas.items():
                         lines.append(f" [{area}] {' '.join(cities)}")
-        lines.append("----------------")
-        lines.append("（出典: 気象庁）")
 
         return "\n".join(lines)
 

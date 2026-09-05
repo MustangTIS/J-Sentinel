@@ -52,7 +52,6 @@ def load_dictionaries(base_dir: Path):
 
     # keiho.csv の読み込み
     keiho_dict = {}
-    keiho_level_dict = {}  # ← ここで初期化
     keiho_csv_candidates = [
         base_dir / "codemaster" / "keiho.csv",
         DATABASE_DIR / "codemaster" / "keiho.csv",
@@ -70,24 +69,22 @@ def load_dictionaries(base_dir: Path):
             with open(keiho_csv, mode="r", encoding="cp932", errors="ignore") as f:
                 reader = csv.reader(f)
                 next(reader, None)
+                # keiho.csv 読み込み部分をこうしておくと安心です
                 for row in reader:
                     if len(row) >= 2 and row[0].strip():
                         # キー側を2桁のゼロ埋め（"3" → "03"）に統一する
                         raw_code = row[0].strip()
                         code_key = raw_code.zfill(2) if raw_code.isdigit() else raw_code
                         keiho_dict[code_key] = row[1].strip()
-                        # C列（インデックス2）にレベルが入っている場合
-                        if len(row) >= 3 and row[2].strip().isdigit():
-                            keiho_level_dict[code_key] = int(row[2].strip())
             print(f"[INFO] keiho.csv を読み込みました（登録件数: {len(keiho_dict)}件）: {keiho_csv.name}")
         except Exception as e:
             print(f"[WARN] keiho.csv の読み込みに失敗しました: {e}")
 
-    return area_dict, keiho_dict, keiho_level_dict  # ← 3つの辞書を返すように修正
+    return area_dict, keiho_dict
 
 def convert_and_save_warning_rt(new_data, base_dir: Path):
     """取得した map.json の構造を解析し、名称付きの WarningRT.json に整形・保存する"""
-    area_dict, keiho_dict, keiho_level_dict = load_dictionaries(base_dir)  # ← 3つで受け取るように修正
+    area_dict, keiho_dict = load_dictionaries(base_dir)
     
     converted_reports = []
     reports = new_data if isinstance(new_data, list) else [new_data]
@@ -97,9 +94,11 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
         found = []
         if isinstance(obj, dict):
             # 1. キー自体がエリアコード（例: "0110000": { ... }）であるケースの判定
+            # コードらしい数字のみのキーかつ、値の中に warnings, kinds, areaCode などの要素がある場合
             for k, v in obj.items():
                 if isinstance(v, dict) and k.isdigit() and (len(k) == 6 or len(k) == 5 or len(k) == 2 or len(k) == 7):
                     if "warnings" in v or "kinds" in v or "areaCode" in v or any(sub_k.isdigit() for sub_k in v.keys()):
+                        # このキー自体をコードとして扱う
                         v_copy = v.copy()
                         if "code" not in v_copy:
                             v_copy["code"] = k
@@ -121,7 +120,7 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
 
     for report in reports:
         report_time = report.get("reportDatetime")
-        notice_text = report.get("notice")  
+        notice_text = report.get("notice")  # ← ①ここで取得する
         area_types_list = []
         
         # レポート内からエリア情報をすべて抽出
@@ -161,15 +160,11 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
                     
                 warn_name = keiho_dict.get(warn_code, warn_code)
                 status = warn.get("status")
-
-                # CSVのC列から取得した危険レベル（なければデフォルト値 2）
-                kikenlv = keiho_level_dict.get(warn_code, 2)
-
+                
                 warnings_list.append({
                     "code": warn_code,
                     "name": warn_name,
-                    "status": status,
-                    "kikenlv": kikenlv  # ← CSVの定義から取得したレベルを付与
+                    "status": status
                 })
             
             if warnings_list:
@@ -186,7 +181,7 @@ def convert_and_save_warning_rt(new_data, base_dir: Path):
             
         converted_reports.append({
             "reportDatetime": report_time,
-            "notice": notice_text,          
+            "notice": notice_text,          # ← ここに追加！
             "areaTypes": area_types_list
         })
 

@@ -7,7 +7,7 @@ def parse_info_json(data):
     headline = data.get("headlineText", "")
     comment_text = data.get("commentText", "").replace("<br>", "\n")
     
-    # タイトル（必要に応じてここで「(気象庁発表)」などを添えることも可能）
+    # タイトル
     title = f"【{control_title}】{head_title}"
     
     # 本文（概要と詳細の結合）
@@ -16,9 +16,6 @@ def parse_info_json(data):
         description_parts.append(f"【概要】\n{headline}")
     if comment_text:
         description_parts.append(f"【詳細】\n{comment_text}")
-    
-    # 💡 クレジット（出典明記）の追加
-    description_parts.append("（出典: 気象庁発表データ）")
     
     description = "\n\n".join(description_parts)
 
