@@ -9,18 +9,20 @@ def build_payload(style, title, description, color, bot_name, current_version, t
     # すべて共通で使う装飾済みタイトル
     bold_title = f"📢 **{title}**"
 
-    # Discord Simple用（改行ありのプレーンテキスト）
+    # Discord Simple用（改行ありのプレーンテキスト / 制限は2000文字なので1900文字手前でカット）
     if style == "dissimple":
-        content = f"{bold_title} / 送信時 {timestamp}\n{description}".strip()
+        safe_desc = description[:1500] if len(description) > 1500 else description
+        content = f"{bold_title} / 送信時 {timestamp}\n{safe_desc}".strip()
         return {"content": content, "username": bot_name}
 
-    # Discord Embed用
+    # Discord Embed用（descriptionは最大4000文字だが全体のJSON制限を考慮して3000〜3500文字あたりに制限）
     elif style == "disembed":
+        safe_desc = description[:3000] if len(description) > 3000 else description
         return {
             "username": bot_name,
             "embeds": [{
                 "title": f"📢 {title}",
-                "description": f"送信時 {timestamp}\n\n{description}",
+                "description": f"送信時 {timestamp}\n\n{safe_desc}",
                 "color": color,
                 "image": {"url": "attachment://image.png"},
                 "footer": {"text": f"J-Sentinel ~ 高度防災システム v{current_version}"}

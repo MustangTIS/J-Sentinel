@@ -33,7 +33,7 @@ def parse_quake_json(json_data, min_display="1"):
         tsunami_node = body.get("Tsunami", {})
         
         warn_details = []  
-        forecast_details = [] 
+        forecast_details = []
         
         # 1. 予報（エリア名と種別）
         forecast_items = ensure_list(tsunami_node.get("Forecast", {}).get("Item", []))
@@ -169,7 +169,6 @@ def parse_quake_json(json_data, min_display="1"):
 
         lines.append("（出典: 気象庁発表データ）")
 
-        # マックスの震度に応じて色を変えるとDiscordで分かりやすい！
         color = 0x3498DB # デフォルト青
         if max_int in ["5弱", "5-", "5強", "5+"]:
             color = 0xE67E22 # オレンジ
@@ -180,6 +179,43 @@ def parse_quake_json(json_data, min_display="1"):
             "title": f"【{h_title}】",
             "description": "\n".join(lines),
             "color": color
+        }
+        
+    # --- D. その他の地震関連情報・解説情報の場合（南海トラフ地震関連解説情報など） ---
+    # A, B, C のいずれにもヒットしなかった場合のフォールバック
+    earthquake_info = body.get("EarthquakeInfo", {})
+    text_content = earthquake_info.get("Text") or head.get("Headline", {}).get("Text") or body.get("Text", "")
+    
+    if text_content or h_title:
+        headline_text = head.get("Headline", {}).get("Text", "")
+        body_text = earthquake_info.get("Text", "") or body.get("Text", "")
+        appendix = earthquake_info.get("Appendix", "")
+        
+        lines = [
+            f"発表時刻：{head.get('ReportDateTime', '不明')}",
+            "----------------"
+        ]
+        
+        if headline_text and headline_text != text_content:
+            lines.append(f"概況：\n{headline_text}")
+            lines.append("----------------")
+            
+        if body_text:
+            lines.append(body_text)
+        elif text_content:
+            lines.append(text_content)
+            
+        if appendix:
+            lines.append("----------------")
+            lines.append(appendix)
+            
+        lines.append("----------------")
+        lines.append("（出典: 気象庁発表データ）")
+        
+        return {
+            "title": f"【{h_title}】",
+            "description": "\n".join(lines),
+            "color": 0x3498DB # 解説・情報系はインフォカラー
         }
 
     return None
