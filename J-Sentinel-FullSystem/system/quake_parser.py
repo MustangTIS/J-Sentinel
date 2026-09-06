@@ -1,3 +1,4 @@
+# quake_parser.py
 import re
 
 # 震度比較用の重み付け（表記ゆれ対応版）

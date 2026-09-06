@@ -85,12 +85,12 @@ def process_and_dispatch(file_path, config):
         
     elif "quake" in normalized_path:
         # 地震情報系パーサの呼び出し (quake_parser)
-        # ※必要に応じて config から min_display_int を渡す
         min_display = config.get("min_display_int", "1")
-        description = quake_parser.parse_quake_json(data, min_display=min_display)
-        if description:
-            title = "【地震情報】"
-            color = 0xE67E22
+        parsed = quake_parser.parse_quake_json(data, min_display=min_display)
+        if parsed:
+            title = parsed.get("title", "【地震情報】")
+            description = parsed.get("description")
+            color = parsed.get("color", 0xE67E22)
             
 
     if not title or not description:
