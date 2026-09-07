@@ -81,11 +81,18 @@ async def on_message(message):
                 json_path = os.path.join(parent_dir, "js_core", "database", "weather", "convert", "WeatherRT.json")
                 result_data = weather_parser.get_weather_info(json_path, codemaster_dir, target_region)
                 
-                # Embed オブジェクトが返ってきた場合は embed パラメータで送信
-                if isinstance(result_data, discord.Embed):
+                # リスト（Embedの束、あるいはエラー文字列）が返ってくる場合の処理
+                if isinstance(result_data, list):
+                    for item in result_data:
+                        if isinstance(item, discord.Embed):
+                            await message.channel.send(embed=item)
+                        else:
+                            # 「見つかりませんでした」などのエラー文字列の場合
+                            await message.channel.send(str(item))
+                elif isinstance(result_data, discord.Embed):
+                    # 念のため単体Embedが返ってきた場合の互換性維持
                     await message.channel.send(embed=result_data)
                 else:
-                    # エラーメッセージなどの文字列の場合
                     await message.channel.send(str(result_data))
 
         except discord.errors.HTTPException as e:
