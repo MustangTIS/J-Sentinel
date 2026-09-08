@@ -10,7 +10,7 @@
 
 最新のフルシステム版パッケージ（コアエンジン、マルチ配信モジュール、対話型ボット、GUIマネージャー同梱）は、以下のリンクからダウンロードできます。
 
-👉 **[J-Sentinel-FullSystem_v1.2.0.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.2.0/J-Sentinel-FullSystem_v1.2.0.zip)**
+👉 **[J-Sentinel-FullSystem_v1.2.9.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.2.9/J-Sentinel-FullSystem_v1.2.9.zip)**
 
 ---
 
@@ -148,3 +148,9 @@
 
 * **出典表記の統一**:
 * 各種気象・地震データの後方に「（出典: 気象庁発表データ）」の表記を漏れなく統一。
+
+***v1.2.0**:
+* 天気用botも気象のように複数件取れるように変更した。
+* 天気botでも過剰な情報ログが流れないようにガードレールを実装。
+
+* bot類その他細かい手直し。
