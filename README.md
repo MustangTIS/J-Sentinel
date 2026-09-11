@@ -1,6 +1,6 @@
 <div align="center">
   <img src="Asset/J-SentinelBanner.jpg" alt="J-Sentinel Banner">
-  <h1>J-Sentinel ～ 高度防災システム (v1.2.0)</h1>
+  <h1>J-Sentinel ～ 高度防災システム (v1.2.9)</h1>
   <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信・対話型ボット統合オーケストレーターシステム</strong></p>
 </div>
 
