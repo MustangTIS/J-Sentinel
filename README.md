@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Asset/icon.jpg" alt="J-Sentinel Logo" width="160" height="160">
+  <img src="Asset/J-SentinelBanner.jpg" alt="J-Sentinel Banner" height="160">
   <h1>J-Sentinel ～ 高度防災システム (v1.2.0)</h1>
   <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信・対話型ボット統合オーケストレーターシステム</strong></p>
 </div>
@@ -149,7 +149,7 @@
 * **出典表記の統一**:
 * 各種気象・地震データの後方に「（出典: 気象庁発表データ）」の表記を漏れなく統一。
 
-***v1.2.0**:
+* **v1.2.9**:
 * 天気用botも気象のように複数件取れるように変更した。
 * 天気botでも過剰な情報ログが流れないようにガードレールを実装。
 
