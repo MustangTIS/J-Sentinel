@@ -1,8 +1,6 @@
 ﻿Keyword,Target Folder,Description,優先順位
 大雨特別警報,emergency/rain_warning,命に関わる優先情報,5
 暴風特別警報,emergency/wind_heavy,命に関わる優先情報,10
-火山,emergency/volcano1,火山の情報,15
-降灰,emergency/volcano2,火山の情報,20
 土砂災害危険警報,emergency/landslide,命に関わる優先情報,25
 記録的短時間大雨,emergency/rain_record,命に関わる優先情報,30
 大雨危険警報,warning/rain_heavy1,命に関わる情報,35

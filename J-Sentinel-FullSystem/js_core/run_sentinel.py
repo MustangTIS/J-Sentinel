@@ -11,7 +11,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 
 
 def load_config() -> dict:
-    """設定ファイルを読み込む。存在しない場合はデフォルト設定を作成する"""
+    """設定ファイルを読み込む。存在しない場合はデフォルト設定を作成し、足りないタスクがあれば補充する"""
     default_config = {
         "debug_mode": True,
         "interval_seconds": 60,
@@ -19,7 +19,8 @@ def load_config() -> dict:
             "info": {"enabled": True, "script": "fetch_info.py"},
             "quake": {"enabled": True, "script": "fetch_quake.py"},
             "warning": {"enabled": True, "script": "fetch_warning.py"},
-            "forecast": {"enabled": True, "script": "fetch_forecast.py"},  # ← 天気予報タスク
+            "volcano": {"enabled": True, "script": "fetch_volcano.py"},  # ← ★火山警報タスクを追加
+            "forecast": {"enabled": True, "script": "fetch_forecast.py"}, # ← 天気予報タスク
         },
         "retention": {"auto_clean_enabled": True, "keep_days": 90},
     }
@@ -27,7 +28,22 @@ def load_config() -> dict:
     if CONFIG_PATH.exists():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+                config = json.load(f)
+            
+            # ★ 既存の config.json に新しいタスク定義がない場合に自動で補充する処理
+            updated = False
+            tasks = config.setdefault("tasks", {})
+            for task_key, task_val in default_config["tasks"].items():
+                if task_key not in tasks:
+                    tasks[task_key] = task_val
+                    updated = True
+            
+            # 構造が更新された場合は保存
+            if updated:
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    json.dump(config, f, ensure_ascii=False, indent=2)
+
+            return config
         except Exception as e:
             print(
                 f"[WARN] config.json の読み込みに失敗しました。デフォルト設定を使用します: {e}"
@@ -98,11 +114,17 @@ def initialize_sync_files():
     db_dir = BASE_DIR / "database"
     db_dir.mkdir(parents=True, exist_ok=True)
 
-    # 🛑 ここで一度コンフィグを読み込んで debug_mode の状態を安全に取得する
     config = load_config()
     debug_mode = config.get("debug_mode", False)
 
-    sync_files = ["info_last_sync.json", "quake_last_sync.json"]
+    # ★ volcano_last_sync.json や warning_last_sync.json など全同期ファイルをカバー
+    sync_files = [
+        "info_last_sync.json",
+        "quake_last_sync.json",
+        "warning_last_sync.json",
+        "volcano_last_sync.json",
+        "forecast_last_sync.json",
+    ]
     current_time = datetime.now().astimezone()
     current_iso_time = current_time.isoformat(timespec="seconds")
 

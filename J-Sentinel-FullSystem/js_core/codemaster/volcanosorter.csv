@@ -1,0 +1,16 @@
+﻿Keyword,Target Folder,Description,優先順位
+レベル５,lv5,命に関わる優先情報,5
+レベル４,lv4,命に関わる優先情報,10
+レベル３,lv3,通常の警告情報,15
+レベル２,lv2,通常の警告情報,20
+レベル１,lv1,通常の警告情報,25
+海域,warning/sea_area,海底火山・周辺海域警報,30
+海外,world,海外の火山情報,35
+火砕流,emergency/pyroclastic,緊急警戒情報,40
+噴火警報,warning/eruption,噴火警報全般,45
+火口周辺,warning/crater,火口周辺警報（レベル非対応火山等）,50
+火山灰,warning/ashes,優先情報,55
+大規模,emergency/eruption,緊急警戒情報,60
+小規模,warning/eruption,優先情報,65
+噴火,warning/etc,保険（「噴火」が含まれる電文）,70
+火山,warning/etc,保険（「火山」が含まれる電文）,75

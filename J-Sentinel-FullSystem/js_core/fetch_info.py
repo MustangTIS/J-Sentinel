@@ -7,15 +7,12 @@ import requests
 
 # スクリプトと同じ階層に database フォルダ
 BASE_DIR = Path(__file__).resolve().parent / "database"
-# info系専用の最後に処理した時刻やIDを記録するメタデータファイル
 STATE_FILE = BASE_DIR / "info_last_sync.json"
-# 振り分けルールのCSVファイル
 SCRIPT_DIR = Path(__file__).resolve().parent
 CSV_RULE_PATH = SCRIPT_DIR / "codemaster" / "infosorter.csv"
 
-# 情報一覧のインデックスURL
+# 情報一覧のインデックスURLおよび電文ベースURL
 INFORMATION_URL = "https://www.jma.go.jp/bosai/information/data/r8/information.json"
-# 個別データのベースURL
 DENBUN_BASE_URL = "https://www.jma.go.jp/bosai/information/data/r8/denbun/"
 
 
@@ -64,28 +61,22 @@ def determine_category_folder(item: dict, denbun_data: dict, rules: list) -> Pat
     control_title = item.get("controlTitle", "")
     head_title = item.get("headTitle", "")
     
-    # 個別JSONデータ側にある主要なテキストも抽出（存在しない場合は空文字）
     headline_text = denbun_data.get("headlineText", "")
     comment_text = denbun_data.get("commentText", "")
 
-    # タイトルから本文まで全て結合してチェック対象にする
     text_to_check = f"{control_title} {head_title} {headline_text} {comment_text}"
 
-    # CSVから読み込んだルールを上から順にマッチング
     for rule in rules:
         if rule["keyword"] in text_to_check:
             return BASE_DIR / "info" / rule["target"]
 
-    # どこにもヒットしなかった場合のデフォルト
     return BASE_DIR / "info" / "etc"
 
 
 def fetch_and_store_loop():
     print(f"=== J-Sentinel Info Module [Database Root: {BASE_DIR}] ===")
     
-    # 振り分けルールを初回に1回だけ読み込む
     sorting_rules = load_sorting_rules()
-    
     last_datetime = load_last_sync()
     print(f"[INFO] 前回同期時刻: {last_datetime if last_datetime else 'なし (初回)'}")
 
@@ -108,27 +99,58 @@ def fetch_and_store_loop():
             if not json_name or not report_datetime:
                 continue
 
-            # 前回同期した時刻よりも古い、または同じものはスキップ
             if last_datetime and report_datetime <= last_datetime:
                 continue
 
-            # 個別データを先に取得して、本文を含めた判定を行えるようにする
+            # 1. raw / item から地域パラメータを抽出
+            area_type = item.get("areaType", "japan")
+            area_code = item.get("areaCode")
+            if not area_code and item.get("areaCodes"):
+                area_code = item.get("areaCodes")[0]
+            if not area_code:
+                area_code = "010000"
+
+            # 2. 個別電文データおよびWebダイレクトURLの取得
             denbun_url = f"{DENBUN_BASE_URL}{json_name}.json"
+            jma_web_url = (
+                f"https://www.jma.go.jp/bosai/information/"
+                f"#area_type={area_type}"
+                f"&info_id={json_name}"
+                f"&format=text"
+                f"&area_code={area_code}"
+                f"&japan_page=0"
+            )
+
+            denbun_data = {}
             try:
                 denbun_res = requests.get(denbun_url, timeout=10)
                 if denbun_res.status_code == 200:
                     denbun_data = denbun_res.json()
                 else:
-                    print(f"[WARNING] 個別取得失敗 ({denbun_res.status_code}): {json_name}")
-                    continue
+                    print(f"[WARNING] 個別取得スキップ ({denbun_res.status_code}): {json_name}")
+                    # 個別データが取れなくても処理を継続する場合は skip せず空 dict のまま進める
             except Exception as sub_e:
                 print(f"[ERROR] 個別取得エラー ({json_name}): {sub_e}")
-                continue
 
-            # 保存先カテゴリフォルダの決定 (インデックス情報 + 本文データを使用)
-            category_dir = determine_category_folder(item, denbun_data, sorting_rules)
+            # 3. 保存先カテゴリフォルダの決定（ここで確実に category_dir を定義）
+            try:
+                category_dir = determine_category_folder(item, denbun_data, sorting_rules)
+            except Exception as cat_e:
+                print(f"[ERROR] カテゴリ判定エラー ({json_name}): {cat_e}")
+                category_dir = BASE_DIR / "info" / "etc"
 
-            # 日付階層 (YYYY/MM/DD) の構築
+            # 4. 保存用ペイロードの構築
+            merged_payload = {
+                "jsonName": json_name,
+                "header": header,
+                "reportDatetime": report_datetime,
+                "jma_url": denbun_url,
+                "jma_web_url": jma_web_url,
+                "detail": denbun_data,
+                "raw": item
+            }
+
+            # 5. 日付階層 (YYYY/MM/DD) の構築
             try:
                 dt_clean = report_datetime.split("+")[0].split("Z")[0]
                 pub_dt = datetime.strptime(dt_clean, "%Y-%m-%dT%H:%M:%S")
@@ -138,20 +160,18 @@ def fetch_and_store_loop():
             date_dir = category_dir / pub_dt.strftime("%Y/%m/%d")
             date_dir.mkdir(parents=True, exist_ok=True)
 
-            # ファイル名構築
+            # 6. ファイル保存
             filename = f"{pub_dt.strftime('%H%M%S')}_{header}_{json_name}.json"
             file_path = date_dir / filename
 
-            # ファイル書き込み
             try:
                 file_path.write_text(
-                    json.dumps(denbun_data, ensure_ascii=False, indent=2),
+                    json.dumps(merged_payload, ensure_ascii=False, indent=2),
                     encoding="utf-8",
                 )
                 print(f"[SAVED] {file_path.relative_to(BASE_DIR)}")
                 saved_count += 1
 
-                # 最新の時刻を更新用バッファに保持
                 if not newest_datetime or report_datetime > newest_datetime:
                     newest_datetime = report_datetime
             except Exception as write_e:
