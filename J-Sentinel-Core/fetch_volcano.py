@@ -129,44 +129,53 @@ def fetch_and_store_loop():
             event_id = item.get("eventId")
             report_datetime = item.get("reportDatetime", "")
 
-            # warning.json に存在しないキー（jsonNameなど）のチェックを外し、eventId で判定
             if not event_id or not report_datetime:
                 continue
 
-            # 前回同期した時刻よりも古い、または同じものはスキップ
             if last_datetime and report_datetime <= last_datetime:
                 continue
 
             # 1. warning.json から主要テキスト（火山名、状況、自治体）を解析
             volcano_name, status_text, target_cities = extract_summary_text(item)
 
-            # 2. 個別詳細データ ({eventId}.json) の取得を試みる
-            denbun_url = f"{VOLCANO_DETAIL_BASE_URL}{event_id}.json"
+            # 2. 個別詳細データ ({日時}_{eventId}.json) の取得 ＆ URL生成
+            if "_" in str(event_id):
+                detail_json_name = f"{event_id}.json"
+            else:
+                dt_str = report_datetime.replace("-", "").replace(":", "").replace("T", "").split("+")[0].split("Z")[0]
+                detail_json_name = f"{dt_str}_{event_id}.json"
+
+            denbun_url = f"{VOLCANO_DETAIL_BASE_URL}{detail_json_name}"
+            jma_web_url = f"https://www.jma.go.jp/bosai/volcano/#type=warning&event_id={event_id}"
+
+            # ★ ここで denbun_data を確実に定義
             denbun_data = {}
             try:
                 denbun_res = requests.get(denbun_url, timeout=10)
                 if denbun_res.status_code == 200:
                     denbun_data = denbun_res.json()
                 else:
-                    print(f"[WARNING] 個別詳細取得スキップ ({denbun_res.status_code}): {event_id}.json")
+                    print(f"[WARNING] 個別詳細取得スキップ ({denbun_res.status_code}): {detail_json_name}")
             except Exception as sub_e:
-                print(f"[ERROR] 個別詳細取得エラー ({event_id}): {sub_e}")
+                print(f"[ERROR] 個別詳細取得エラー ({detail_json_name}): {sub_e}")
 
-            # 3. 保存用ペイロードの構築（warning.jsonの基本構造 + 整形データ + 詳細テキスト）
+            # 3. 保存先カテゴリフォルダの決定（denbun_data 定義後に実行）
+            category_dir = determine_category_folder(volcano_name, status_text, target_cities, denbun_data, sorting_rules)
+
+            # 4. 保存用ペイロードの構築
             merged_payload = {
                 "eventId": event_id,
                 "reportDatetime": report_datetime,
                 "volcanoName": volcano_name,
                 "status": status_text,
                 "targetCities": target_cities,
-                "detail": denbun_data,  # 取得できた場合のみ解説文等が入る
+                "jma_url": denbun_url,            # システム用JSON直リンク
+                "jma_web_url": jma_web_url,        # 人間用Web直リンク（#type=warning&event_id=...）
+                "detail": denbun_data,
                 "raw": item
             }
 
-            # 保存先カテゴリフォルダの決定
-            category_dir = determine_category_folder(volcano_name, status_text, target_cities, denbun_data, sorting_rules)
-
-            # 日付階層 (YYYY/MM/DD) の構築
+            # 5. 日付階層 (YYYY/MM/DD) の構築
             try:
                 dt_clean = report_datetime.split("+")[0].split("Z")[0]
                 pub_dt = datetime.strptime(dt_clean, "%Y-%m-%dT%H:%M:%S")
