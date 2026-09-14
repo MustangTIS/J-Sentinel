@@ -3,6 +3,7 @@ import json
 import os
 import time
 import re
+import unicodedata
 
 # --- 1. テキスト切り詰めの共通ヘルパー (文字数 & 行数) ---
 def truncate_text(text, max_chars=500, max_lines=15, web_url=None):
@@ -118,33 +119,47 @@ def build_payload(style, title, description, color, bot_name, current_version, t
 
     # E. Bluesky (※プロトコル仕様の300バイト制限枠内へ収める処理)
     elif "bluesky" in style_lower:
-        header = f"📢 {title}\n"
-        footer = f"\n({timestamp} 送信)"
+        header = f"📢 {title}"
         
-        if web_url and ("👉 全文を確認:" not in target_desc) and (web_url not in target_desc):
-            footer = f"\n詳細: {web_url}" + footer
-
-        # UTF-8バイト数上限(300B)からヘッダー・フッター分を差し引く
-        header_bytes = len(header.encode('utf-8'))
-        footer_bytes = len(footer.encode('utf-8'))
-        max_desc_bytes = 295 - header_bytes - footer_bytes
-
-        # 本文を改行スペース変換して安全なバイト数までカット
-        clean_desc = re.sub(r'\n+', ' ', target_desc).strip()
+        # リンク用URLの処理（web_urlが存在し、まだ本文に含まれていない場合）
+        link_str = ""
+        if web_url and (web_url not in target_desc):
+            link_str = f"\n🔗 {web_url}"
+            
+        timestamp_str = f"\n({timestamp} 送信)"
+        
+        # 固定パーツ（ヘッダー、タイムスタンプ、URL）のバイト数を正確に計算
+        # 余白の改行なども含めて計算する
+        fixed_parts = f"{header}\n\n{link_str}{timestamp_str}"
+        fixed_bytes = len(fixed_parts.encode('utf-8'))
+        
+        # Blueskyの上限（300バイト）から固定パーツ分を引いた残りを本文に割り当てる
+        # 安全のため少しマージン（5バイト程度）を引いておく
+        max_desc_bytes = 295 - fixed_bytes
+        
+        clean_desc = target_desc.strip()
         encoded_desc = clean_desc.encode('utf-8')
-
-        if len(encoded_desc) > max_desc_bytes:
-            # バイト数枠内で安全にスライスして文字列に戻す
-            short_desc = encoded_desc[:max_desc_bytes - 3].decode('utf-8', errors='ignore') + "..."
+        
+        if len(encoded_desc) > max_desc_bytes and max_desc_bytes > 0:
+            # 枠内に収まるようにスライス
+            short_desc = (
+                encoded_desc[: max_desc_bytes - 3]
+                .decode('utf-8', errors='ignore')
+                + "..."
+            )
+        elif max_desc_bytes <= 0:
+            # 万が一固定文言だけでいっぱいのときのフォールバック
+            short_desc = "..."
         else:
             short_desc = clean_desc
 
-        full_text = f"{header}\n{short_desc}\n{footer}"
-        
-        return {
-            "text": full_text,
-            "facets": build_bluesky_facets(full_text)
-        }
+        # 最終的なテキストの組み立て
+        full_text = f"{header}\n\n{short_desc}"
+        if link_str:
+            full_text += f"{link_str}"
+        full_text += f"{timestamp_str}"
+
+        return {"text": full_text, "facets": build_bluesky_facets(full_text)}
 
 # --- 4. 各送信実務 ---
 
