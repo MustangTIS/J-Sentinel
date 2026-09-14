@@ -14,6 +14,7 @@ from system.log_monitor import LogMonitor
 # 各種パーサーのインポート（system フォルダから取得）
 from system import quake_parser
 from system import info_parser
+from system import volcano_parser  # ← 火山用パーサを追加
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -31,7 +32,7 @@ def check_for_updates():
             if latest_tag and latest_tag != current:
                 return "UPDATE_AVAILABLE", latest_tag, data.get("html_url")
             return "LATEST", current, None
-    except:
+    except Exception:
         return "ERROR", None, None
     return "ERROR", None, None
 
@@ -53,14 +54,11 @@ def launch_sentinel_core():
 
 def process_and_dispatch(file_path, config):
     """
-    検知された新規ファイルのパスを読み込み、フォルダ階層や種類に応じて
-    適切なパーサに振り分けた上で、Discord等へ配信する
+    検知されたファイルパスのフォルダ階層に応じて適切なパーサに一任し、
+    取得した辞書データを各宛先へそのまま配信する
     """
     destinations = config.get("destinations", [])
-    if not destinations:
-        return
-
-    if not os.path.exists(file_path):
+    if not destinations or not os.path.exists(file_path):
         return
 
     # 1. JSONファイルの読み込み
@@ -71,58 +69,51 @@ def process_and_dispatch(file_path, config):
         print(f"    └─ [Error] JSONの読み込みに失敗しました ({file_path}): {e}")
         return
 
-    title, description, color, image_path = None, None, 0x3498DB, None
-
-    # 2. パスや中身に応じたパーサの自動振り分け
+    # 2. パスに応じたパーサへの完全委任
     normalized_path = file_path.replace("\\", "/")
-    
-    if "info" in normalized_path:
-        # 気象情報系パーサの呼び出し (info_parser)
+    parsed = None
+
+    if "/volcano/" in normalized_path or normalized_path.endswith("/volcano"):
+        parsed = volcano_parser.parse_volcano_json(data, mode="full")
+    elif "/info/" in normalized_path or normalized_path.endswith("/info"):
         parsed = info_parser.parse_info_json(data)
-        title = parsed.get("title")
-        description = parsed.get("description")
-        color = parsed.get("color", 0x3498DB)
-        
-    elif "quake" in normalized_path:
-        # 地震情報系パーサの呼び出し (quake_parser)
+    elif "/quake/" in normalized_path or normalized_path.endswith("/quake"):
         min_display = config.get("min_display_int", "1")
         parsed = quake_parser.parse_quake_json(data, min_display=min_display)
-        if parsed:
-            title = parsed.get("title", "【地震情報】")
-            description = parsed.get("description")
-            color = parsed.get("color", 0xE67E22)
-            
+    else:
+        print(f"    └─ [Skip] 対象外のフォルダパスです: {normalized_path}")
+        return
 
-    if not title or not description:
+    # 必須パラメータ（title / description）が取得できなければスキップ
+    if not parsed or not parsed.get("title") or not parsed.get("description"):
         return
 
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    current_version = CURRENT_VERSION
 
-    # 3. 各宛先（Discord等）へのディスパッチ
+    # 3. 各宛先（Discord/Matrix/Slack/Bluesky等）へのシンプルディスパッチ
     for dest in destinations:
-        style = dest.get("style", "disembed")
-        url = dest.get("url", "")
-        
+        dest_mode = dest.get("mode", "full")
         try:
             res = senders.dispatch(
-                style=style,
-                title=title,
-                description=description,
-                color=color,
-                image_path=image_path,
-                url=url,
+                style=dest.get("style", "disembed"),
+                title=parsed.get("title"),
+                description=parsed.get("description"),
+                color=parsed.get("color", 0x3498DB),
+                image_path=parsed.get("image_path"),
+                url=dest.get("url", ""),
                 bot_name="J-Sentinel Bot",
-                current_version=current_version,
+                current_version=CURRENT_VERSION,
                 timestamp=timestamp,
                 matrix_token=dest.get("token"),
                 matrix_room=dest.get("room"),
                 bsky_handle=dest.get("handle"),
-                bsky_pass=dest.get("password")
+                bsky_pass=dest.get("password"),
+                web_url=parsed.get("web_url") or parsed.get("url"),
+                mode=dest_mode
             )
-            print(f"    └─ [Dispatch Success] Style: {style} -> Result: {res}")
+            print(f"    └─ [Dispatch Success] Style: {dest.get('style')} -> Result: {res}")
         except Exception as e:
-            print(f"    └─ [Dispatch Error] Style: {style} -> {e}")
+            print(f"    └─ [Dispatch Error] Style: {dest.get('style')} -> {e}")
 
 def main():
     print("-" * 52)
