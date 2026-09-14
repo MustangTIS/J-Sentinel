@@ -13,32 +13,41 @@ J-Sentinel は、気象庁が公開する公式オープンデータ（地震、
 
 【ディレクトリ構造】
 \J-Sentinel-Core\
- ├─ config.json            # システム全体の動作・タスク・インターバル設定
+ ├─ core-runner.bat        # システムプロセス群の統括ランナー
  ├─ run_sentinel.py        # メイン・オーケストレーター（常駐ランナー）
  ├─ run_sentinel.bat       # Windows用起動バッチ（依存ライブラリ自動チェック機能付）
  ├─ js_gui_setup.py        # GUI設定管理・マスター編集ツール
  ├─ setup-gui.bat          # GUI設定ツール用起動バッチ
  │
- ├─ fetch_info.py          # 気象庁総合情報・アラート・火山・各種予報取得スクリプト
+ ├─ fetch_forecast.py      # 天気予報・週間予報取得スクリプト
+ ├─ fetch_info.py          # 気象庁総合情報・アラート等取得スクリプト
  ├─ fetch_quake.py         # 地震情報・津波・遠地地震取得スクリプト
- ├─ fetch_warning.py       # 気象警報マップ (map.json) 取得・名称変換スクリプト
+ ├─ fetch_volcano.py       # 火山噴火警報・予報取得スクリプト
+ ├─ fetch_warning.py       # 気象警報マップ取得・名称変換スクリプト
+ ├─ icon.ico               # アプリケーション・GUI用アイコン
  │
- ├─ codemaster/            # 振り分けルールおよび地域・警報コード定義CSV
- │   ├─ areakisyou.csv     # 気象情報エリアコード辞書
- │   ├─ infosorter.csv     # 総合情報カテゴリ振り分けルール
- │   ├─ keiho.csv          # 警報コード・名称定義辞書
- │   └─ quakesorter.csv    # 地震情報振り分けルール
+ ├─ codemaster/            # 振り分けルールおよび地域・警報・火山コード定義CSV
+ │  ├─ areakisyou.csv      # 気象情報エリアコード辞書
+ │  ├─ areakisyou2.csv     # 気象情報エリアコード拡張辞書
+ │  ├─ arealink.csv        # エリアリンク情報辞書
+ │  ├─ infosorter.csv      # 総合情報カテゴリ振り分けルール
+ │  ├─ keiho.csv           # 警報コード・名称定義辞書
+ │  ├─ quakesorter.csv     # 地震情報振り分けルール
+ │  ├─ volcanosorter.csv   # 火山情報振り分けルール
+ │  └─ weather.csv         # 天気予報カテゴリ・コード定義辞書
  │
  └─ database/              # 取得した防災データの保存先ルート
-     ├─ info/              # 総合情報系 (alert / warning / volcano / yoho / etc)
-     ├─ keiho/             # 警報系 (base: 生データ / convert: 整形済みリアルタイムデータ)
-     └─ quake/             # 地震系 (japan: 国内地震 / tsunami: 津波 / world: 遠地 / etc)
+    ├─ info/               # 総合情報系
+    ├─ keiho/              # 警報系 (base: 生データ / convert: 整形済みリアルタイムデータ)
+    ├─ weather/            # 天気系 (base: 生データ / convert: 整形済みリアルタイムデータ)
+    ├─ volcano/            # 火山系
+    └─ quake/              # 地震系
 
 
 【主な機能・特徴】
 1. 独立したインジェスト・パイプライン
-   - 各モジュール（info / quake / warning）が独立して動作し、エラーや外部接続の
-     一時的な詰まりがシステム全体へ波及しない堅牢な設計。
+   - 各モジュール（info / quake / warning / forecast / volcano）が独立して動作し、
+     エラーや外部接続の一時的な詰まりがシステム全体へ波及しない堅牢な設計。
 2. 冪等性の担保と重複排除
    - 最終同期時刻（*_last_sync.json）を管理し、同一データの二重取得や不要な再処理を防止。
 3. マスターCSVによる柔軟な振り分け

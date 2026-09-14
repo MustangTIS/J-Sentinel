@@ -1,5 +1,5 @@
 ======================================================================
- J-Sentinel ～ 高度防災システム (Full System Edition) v0.30.5
+ J-Sentinel ～ 高度防災システム (Full System Edition) v1.3.0
 ======================================================================
 
 【概要】
@@ -16,31 +16,51 @@ Discord、Slack、Matrix、Bluesky などのマルチプラットフォームへ
  │  setup-gui.bat             # 【Step 1】GUI設定管理ツール起動用バッチ
  │  J-sentinel.bat            # 【Step 2】メイン・プッシュ通知システム起動用バッチ
  │  bot.bat                   # 【参考】対話型チャットボット (Discord/Matrix) 起動用バッチ
+ │  icon.ico                  # アプリケーション・GUI用アイコン
+ │  icon.jpg                  # イメージ用アイコン画像
  │
  │  J-Sentinel_main.py        # メイン・オーケストレーター（新着検知・ディスパッチ）
  │  js_main_gui_setup.py      # GUI設定・マルチ配信先マネージャー (CustomTkinter製)
  │
  ├─ system/                   # システム中核モジュール群
- │      config_manager.py     # 設定ファイル読み込み・環境検証
- │      log_monitor.py        # 監視ディレクトリの非同期ファイルウォッチャー
- │      info_parser.py        # 気象情報・特別警報等の汎用パーサ
- │      quake_parser.py       # 地震・津波・遠地地震情報 パーサ＆震度ソート
- │      senders.py            # マルチプラットフォーム配信司令塔
+ │     config_manager.py      # 設定ファイル読み込み・環境検証
+ │     log_monitor.py         # 監視ディレクトリの非同期ファイルウォッチャー
+ │     info_parser.py         # 気象情報・特別警報等の汎用パーサ
+ │     quake_parser.py        # 地震・津波・遠地地震情報 パーサ＆震度ソート
+ │     volcano_parser.py      # 火山噴火警報・予報パーサ＆カラーマップ制御
+ │     senders.py             # マルチプラットフォーム配信司令塔
  │
  ├─ bot/                      # 対話型ボットモジュール群
- │      discord_bot.py        # Discord インタラクティブ・コールバックボット
- │      matrix_bot.py         # Matrix インタラクティブ・コールバックボット
- │      warning_parser.py     # 気象警報・注意報JSON パーサ＆地域検索
- │      weather_parser.py     # 天気予報JSON パーサ (Discord Embed用)
- │      weather_parser_matrix.py # 天気予報JSON パーサ (Matrix Markdown用)
+ │     discord_bot.py         # Discord インタラクティブ・コールバックボット
+ │     matrix_bot.py          # Matrix インタラクティブ・コールバックボット
+ │     warning_parser.py      # 気象警報・注意報JSON パーサ＆地域検索
+ │     weather_parser.py      # 天気予報JSON パーサ (Discord Embed用)
+ │     weather_parser_matrix.py # 天気予報JSON パーサ (Matrix Markdown用)
  │
  └─ js_core/                  # コア・インジェストモジュール群
-     │  run_sentinel.py       # 気象庁データ定期ポーリング・インジェスト実行
-     ├─ codemaster/           # 振り分けルール・地域コード辞書 (CSV)
-     └─ database/             # 取得データの保存先ルート
-         ├─ info/             # 総合情報・気象警報系
-         ├─ keiho/            # 警報変換データ (WarningRT.json 等)
-         └─ quake/            # 地震系 (japan / tsunami / world / etc)
+    │  core-runner.bat        # システムプロセス群の統括ランナー
+    │  run_sentinel.py        # 気象庁データ定期ポーリング・インジェスト実行
+    │  run_sentinel.bat       # Windows用起動バッチ（依存ライブラリ自動チェック）
+    │  js_gui_setup.py        # コア側GUI設定ツール
+    │  setup-gui.bat          # コア側GUI起動用バッチ
+    │  icon.ico               # アイコンファイル
+    │
+    ├─ codemaster/            # 振り分けルール・地域コード辞書 (CSV)
+    │     areakisyou.csv      # 気象情報エリアコード辞書
+    │     areakisyou2.csv     # 気象情報エリアコード拡張辞書
+    │     arealink.csv        # エリアリンク情報辞書
+    │     infosorter.csv      # 総合情報カテゴリ振り分けルール
+    │     keiho.csv           # 警報コード・名称定義辞書
+    │     quakesorter.csv     # 地震情報振り分けルール
+    │     volcanosorter.csv   # 火山情報振り分けルール
+    │     weather.csv         # 天気予報カテゴリ・コード定義辞書
+    │
+    └─ database/              # 取得データの保存先ルート
+          ├─ info/            # 総合情報系
+          ├─ keiho/           # 警報変換データ (base / convert)
+          ├─ weather/         # 天気系 (base / convert)
+          ├─ volcano/         # 火山系データ
+          └─ quake/           # 地震系 (japan / tsunami / world / etc)
 
 
 【クイックスタート手順】
@@ -67,10 +87,10 @@ Discord、Slack、Matrix、Bluesky などのマルチプラットフォームへ
 4. 対話型チャットボット（情報照会機能）の併用
    - チャットから「帯広市の気象情報は？」や「帯広の天気は？」とメンション・問い合せて即座に情報を引き出したい場合は、
      別途 `bot.bat` を起動することで、DiscordやMatrix上の対話機能が利用可能になります。
-	    ※現在の対応しているコマンド
-		     天気系   ○○の天気は   天気/○○※スラッシュは全角半角両対応
-			 気象系   ○○の気象情報は   気象/○○※スラッシュは全角半角両対応
-	 
+     ※現在対応しているコマンド
+         天気系   ○○の天気は    天気/○○ ※スラッシュは全角半角両対応
+         気象系   ○○の気象情報は  気象/○○ ※スラッシュは全角半角両対応
+     
 
 【対応配信プラットフォーム】
 - Discord (Embed形式 / Simple形式 ＆ チャット応答)
