@@ -36,13 +36,16 @@ def truncate_text(text, max_chars=500, max_lines=15, web_url=None):
 # --- 2. Bluesky用 Facet (リンク化) 自動生成ヘルパー ---
 def build_bluesky_facets(text):
     facets = []
-    url_regex = r'https?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))'
+    # 【修正】スペースや括弧・改行以外の連続文字をすべてURLとして正確にキャッチする
+    url_regex = r'https?://[^\s<>"{}|\^`[\]]+'
     
     for match in re.finditer(url_regex, text):
         url = match.group(0)
-        # match.start()/end() の文字インデックスから正確なUTF-8バイト位置を算出 (重複URL対応)
+        # 末尾に余分な句点やピリオドが巻き込まれないようにトリム
+        url = url.rstrip('.,;:!?）｣。、')
+        
         start_byte = len(text[:match.start()].encode('utf-8'))
-        end_byte = len(text[:match.end()].encode('utf-8'))
+        end_byte = start_byte + len(url.encode('utf-8'))
         
         facets.append({
             "index": {
@@ -117,49 +120,61 @@ def build_payload(style, title, description, color, bot_name, current_version, t
         body = f"{bold_title} / 送信時 {timestamp}\n{target_desc}{url_footer}\n───────────"
         return {"msgtype": "m.text", "body": body}
 
-    # E. Bluesky (※プロトコル仕様の300バイト制限枠内へ収める処理)
+    # E. Bluesky (※長文を優先しつつ、URLはラベル化して300B内に収める処理)
     elif "bluesky" in style_lower:
         header = f"📢 {title}"
-        
-        # リンク用URLの処理（web_urlが存在し、まだ本文に含まれていない場合）
-        link_str = ""
-        if web_url and (web_url not in target_desc):
-            link_str = f"\n🔗 {web_url}"
-            
         timestamp_str = f"\n({timestamp} 送信)"
         
-        # 固定パーツ（ヘッダー、タイムスタンプ、URL）のバイト数を正確に計算
-        # 余白の改行なども含めて計算する
-        fixed_parts = f"{header}\n\n{link_str}{timestamp_str}"
+        # 🔗 リンクの表示名（「詳細：気象庁HP」にして極限まで文字数を節約）
+        link_label = "\n🔗 詳細：気象庁HP" if web_url else ""
+        
+        # 固定パーツ（ヘッダー、ラベル、タイムスタンプ）のバイト数を計算
+        fixed_parts = f"{header}\n\n{link_label}{timestamp_str}"
         fixed_bytes = len(fixed_parts.encode('utf-8'))
         
-        # Blueskyの上限（300バイト）から固定パーツ分を引いた残りを本文に割り当てる
-        # 安全のため少しマージン（5バイト程度）を引いておく
+        # 300バイト制限（安全マージン含め295）から逆算して、本文に割ける容量を確保
         max_desc_bytes = 295 - fixed_bytes
         
         clean_desc = target_desc.strip()
         encoded_desc = clean_desc.encode('utf-8')
         
         if len(encoded_desc) > max_desc_bytes and max_desc_bytes > 0:
-            # 枠内に収まるようにスライス
             short_desc = (
                 encoded_desc[: max_desc_bytes - 3]
                 .decode('utf-8', errors='ignore')
                 + "..."
             )
         elif max_desc_bytes <= 0:
-            # 万が一固定文言だけでいっぱいのときのフォールバック
             short_desc = "..."
         else:
             short_desc = clean_desc
 
-        # 最終的なテキストの組み立て
+        # 最終的なテキストの組み立て（本文をできるだけ多く残す）
         full_text = f"{header}\n\n{short_desc}"
-        if link_str:
-            full_text += f"{link_str}"
-        full_text += f"{timestamp_str}"
+        if link_label:
+            full_text += f"{link_label}"
 
-        return {"text": full_text, "facets": build_bluesky_facets(full_text)}
+        # Facet（リンク化）の処理：表示上のリンク文字列を本物の web_url に紐付ける
+        facets = []
+        if web_url:
+            # 実際に表示させている文字列（絵文字を除いた部分、あるいはテキスト全体）に合わせる
+            target_str = "詳細：気象庁HP"
+            pos = full_text.find(target_str)
+            if pos != -1:
+                start_byte = len(full_text[:pos].encode('utf-8'))
+                end_byte = start_byte + len(target_str.encode('utf-8'))
+                facets.append({
+                    "index": {
+                        "byteStart": start_byte,
+                        "byteEnd": end_byte
+                    },
+                    "features": [{
+                        "$type": "app.bsky.richtext.facet#link",
+                        "uri": web_url
+                    }]
+                })
+
+        return {"text": full_text, "facets": facets}
 
 # --- 4. 各送信実務 ---
 
