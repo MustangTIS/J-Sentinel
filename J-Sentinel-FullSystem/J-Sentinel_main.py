@@ -18,7 +18,7 @@ from system import volcano_parser  # ← 火山用パーサを追加
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-CURRENT_VERSION = "1.4.0"
+CURRENT_VERSION = "1.4.2"
 REPO_URL = "MustangTIS/J-Sentinel"
 
 def check_for_updates():
