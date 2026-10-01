@@ -167,7 +167,7 @@ def initialize_sync_files():
                 print(f"[WARN] 同期ファイルの初期化に失敗しました ({file_name}): {e}")
 
 def clean_old_files():
-    """設定された保持日数（keep_days）を超える古いキャッシュ・データベースファイルを削除する"""
+    """設定された保持日数（keep_days）を超える古いキャッシュ・データベースファイルを削除し、空のフォルダも掃除する"""
     config = load_config()
     retention_config = config.get("retention", {})
     
@@ -180,7 +180,7 @@ def clean_old_files():
     # 削除対象となる基準時刻を算出
     threshold_time = datetime.now() - timedelta(days=keep_days)
     
-    # 探索・削除対象とするディレクトリ（必要に応じて database や logs などを指定）
+    # 探索・削除対象とするディレクトリ
     target_dirs = [BASE_DIR / "database"]
     
     if debug_mode:
@@ -191,16 +191,13 @@ def clean_old_files():
         if not target_dir.exists():
             continue
             
-        # ディレクトリ内のファイル（必要に応じてサブディレクトリや拡張子を絞る）
+        # 1. 古いファイルを削除
         for file_path in target_dir.glob("**/*"):
             if file_path.is_file():
-                # 同期ファイル（*_last_sync.json）などは直近の状態維持に使うため除外するか、
-                # あるいは純粋に更新日時（mtime）やファイル名に含まれる日付で判断する
                 if file_path.name.endswith("_last_sync.json"):
                     continue
                 
                 try:
-                    # ファイルの最終更新日時を取得
                     mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
                     if mtime < threshold_time:
                         file_path.unlink()
@@ -209,6 +206,22 @@ def clean_old_files():
                             print(f"  - 削除しました: {file_path.name} (最終更新: {mtime.strftime('%Y-%m-%d')})")
                 except Exception as e:
                     print(f"[WARN] ファイルの削除に失敗しました ({file_path.name}): {e}")
+
+        # 2. ★追加: 中身が空になったディレクトリを底面から順に削除する
+        # topdown=False にすることで、子フォルダを先にスキャンしてから親フォルダを処理できる
+        for current_dir, subdirs, files in os.walk(target_dir, topdown=False):
+            # 基準ディレクトリ自体は削除しないように除外
+            if Path(current_dir) == target_dir:
+                continue
+            
+            try:
+                # フォルダが完全に空（ファイルもサブフォルダもない）場合
+                if not os.listdir(current_dir):
+                    os.rmdir(current_dir)
+                    if debug_mode:
+                        print(f"  - 空フォルダを削除しました: {Path(current_dir).name}")
+            except Exception as e:
+                print(f"[WARN] 空フォルダの削除に失敗しました ({Path(current_dir).name}): {e}")
 
     if debug_mode and deleted_count > 0:
         print(f"[CLEAN] クリーンアップ完了: 計 {deleted_count} 件の古いファイルを削除しました。")
