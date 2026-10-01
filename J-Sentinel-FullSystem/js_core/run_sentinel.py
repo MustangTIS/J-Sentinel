@@ -18,6 +18,7 @@ def load_config() -> dict:
         "tasks": {
             "info": {"enabled": True, "script": "fetch_info.py"},
             "quake": {"enabled": True, "script": "fetch_quake.py"},
+            "tsunami": {"enabled": True, "script": "fetch_tsunami.py"},
             "warning": {"enabled": True, "script": "fetch_warning.py"},
             "volcano": {"enabled": True, "script": "fetch_volcano.py"},  # ← ★火山警報タスクを追加
             "forecast": {"enabled": True, "script": "fetch_forecast.py"}, # ← 天気予報タスク
@@ -121,6 +122,7 @@ def initialize_sync_files():
     sync_files = [
         "info_last_sync.json",
         "quake_last_sync.json",
+        "tsunami_last_sync.json",
         "warning_last_sync.json",
         "volcano_last_sync.json",
         "forecast_last_sync.json",

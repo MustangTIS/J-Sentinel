@@ -43,6 +43,7 @@ class JSentinelSetupApp:
             "tasks": {
                 "info": {"enabled": True, "script": "fetch_info.py"},
                 "quake": {"enabled": True, "script": "fetch_quake.py"},
+                "tsunami": {"enabled": True, "script": "fetch_tsunami.py"},
                 "warning": {"enabled": True, "script": "fetch_warning.py"},
                 "volcano": {"enabled": True, "script": "fetch_volcano.py"},  # ★追加
                 "forecast": {"enabled": True, "script": "fetch_forecast.py"},
@@ -257,6 +258,13 @@ sc.WorkingDirectory = "{BASE_DIR}"
             task_frame,
             text="地震情報タスク (fetch_quake.py)",
             variable=self.task_quake_var,
+        ).pack(anchor=tk.W, pady=2)
+
+        self.task_tsunami_var = tk.BooleanVar()
+        ttk.Checkbutton(
+            task_frame,
+            text="津波情報タスク (fetch_tsunami.py)",
+            variable=self.task_tsunami_var,
         ).pack(anchor=tk.W, pady=2)
 
         self.task_warning_var = tk.BooleanVar()
