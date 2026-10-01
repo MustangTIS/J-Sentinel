@@ -1,6 +1,6 @@
 <div align="center">
   <img src="Asset/J-SentinelBanner.jpg" alt="J-Sentinel Banner">
-  <h1>J-Sentinel ～ 高度防災システム (v1.3.1)</h1>
+  <h1>J-Sentinel ～ 高度防災システム (v1.4.0)</h1>
   <p><strong>高度防災情報インジェスト・マルチプラットフォーム配信・対話型ボット統合オーケストレーターシステム</strong></p>
 </div>
 
@@ -10,7 +10,7 @@
 
 最新のフルシステム版パッケージ（コアエンジン、マルチ配信モジュール、対話型ボット、GUIマネージャー同梱）は、以下のリンクからダウンロードできます。
 
-👉 **[J-Sentinel-FullSystem_v1.3.1.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.3.1/J-Sentinel-FullSystem_v1.3.1.zip)**
+👉 **[J-Sentinel-FullSystem_v1.4.0.zip をダウンロード](https://github.com/MustangTIS/J-Sentinel/releases/download/v1.4.0/J-Sentinel-FullSystem_v1.4.0.zip)**
 
 ---
 
@@ -122,6 +122,7 @@
 
 > ※ 詳細な全バージョン履歴は公式サイトの[変更履歴ページ](https://mustangtis.wjg.jp/J-Sentinel/)をご参照ください。
 
+* **v1.4.0**: 津波情報インジェスト・パーサモジュールにおける個別電文（ネストされたリスト構造）の堅牢な解析処理の追加、および気象庁一次ソースからのデータ取得安定性を大幅に向上。
 * **v1.3.1**: 火山情報パーサ（`volcano_parser.py`）の新設、URL連携のフォールバック強化、および Bluesky（AT Protocol）送信の文字数・ラベルリンク最適化。
 * **v1.2.x**: 送信ガードレールの共通化、地震情報パーサの刷新、天気botの複数件取得対応など。
 * **v1.1.0**: 気象庁の利用規約に基づく出典表記の自動追加。
