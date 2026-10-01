@@ -10,12 +10,12 @@ import requests
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 CODEMASTER_DIR = BASE_DIR / "codemaster"
-STATE_FILE = DATABASE_DIR / "quake_last_sync.json"
+STATE_FILE = DATABASE_DIR / "tsunami_last_sync.json"
 CONFIG_CSV = CODEMASTER_DIR / "quakesorter.csv"
 
-# 地震情報一覧のインデックスURLおよび電文ベースURL
-INFORMATION_URL = "https://www.jma.go.jp/bosai/quake/data/list.json"
-QUAKE_BASE_URL = "https://www.jma.go.jp/bosai/quake/data/"
+# 津波情報一覧のインデックスURLおよび電文ベースURL
+INFORMATION_URL = "https://www.jma.go.jp/bosai/tsunami/data/list.json"
+TSUNAMI_BASE_URL = "https://www.jma.go.jp/bosai/tsunami/data/"
 
 
 def parse_coordinate(coord_str: str):
@@ -68,30 +68,8 @@ def save_last_sync(target_datetime: str):
     )
 
 
-def determine_category_folder(item: dict, denbun_data: dict, rules: list) -> Path:
-    """電文データから振り分け先のカテゴリフォルダを判別する"""
-    control = denbun_data.get("Control", {})
-    head = denbun_data.get("Head", {})
-    
-    c_title = control.get("Title", "")
-    h_title = head.get("Title", "")
-    info_kind = head.get("InfoKind", "")
-    headline_text = head.get("Headline", {}).get("Text", "")
-
-    # 1. 遠地地震の判定
-    if "遠地地震" in h_title or "遠地" in h_title:
-        return DATABASE_DIR / "quake" / "world"
-
-    # 2. 国内の地震・震源震度報の判定
-    if "震源" in c_title or "震度" in h_title or "地震情報" in h_title or "地震" in c_title:
-        return DATABASE_DIR / "quake" / "japan"
-
-    # 3. その他・臨時解説情報など
-    return DATABASE_DIR / "quake" / "etc"
-
-
 def fetch_and_store_loop():
-    print(f"=== J-Sentinel Quake Module [Database Root: {DATABASE_DIR}] ===")
+    print(f"=== J-Sentinel Tsunami Module [Database Root: {DATABASE_DIR}] ===")
     
     rules = load_sync_rules()
     print(f"[INFO] 読み込み完了ルール数: {len(rules)} 件")
@@ -99,7 +77,7 @@ def fetch_and_store_loop():
     last_datetime = load_last_sync()
     print(f"[INFO] 前回同期時刻: {last_datetime if last_datetime else 'なし (初回)'}")
 
-    print("[INFO] 気象庁の地震情報インデックスにアクセス中...")
+    print("[INFO] 気象庁の津波情報インデックスにアクセス中...")
     try:
         response = requests.get(INFORMATION_URL, timeout=15)
         response.raise_for_status()
@@ -110,7 +88,15 @@ def fetch_and_store_loop():
         saved_count = 0
         newest_datetime = last_datetime
 
-        for item in feed_data:
+        for raw_item in feed_data:
+            # item がリスト構造になっている場合を考慮して辞書を取り出す
+            if isinstance(raw_item, list):
+                item = raw_item[0] if len(raw_item) > 0 and isinstance(raw_item[0], dict) else {}
+            elif isinstance(raw_item, dict):
+                item = raw_item
+            else:
+                continue
+
             json_filename = item.get("json")
             report_datetime = item.get("rptTime", item.get("at", ""))
             eid = item.get("eid", "UNKNOWN")
@@ -127,43 +113,55 @@ def fetch_and_store_loop():
                 ctt = json_filename.split("_")[0]
 
             # 2. 個別電文データの取得処理
-            denbun_url = f"{QUAKE_BASE_URL}{json_filename}"
+            denbun_url = f"{TSUNAMI_BASE_URL}{json_filename}"
             denbun_data = {}
             try:
                 denbun_res = requests.get(denbun_url, timeout=10)
                 if denbun_res.status_code == 200:
-                    denbun_data = denbun_res.json()
+                    raw_denbun = denbun_res.json()
+                    
+                    # 💡 【重要修正】リスト構造がネストしている場合も含めて確実に辞書を取り出す
+                    curr = raw_denbun
+                    while isinstance(curr, list):
+                        if len(curr) > 0:
+                            curr = curr[0]
+                        else:
+                            curr = {}
+                            break
+                    if isinstance(curr, dict):
+                        denbun_data = curr
+                    else:
+                        denbun_data = {}
                 else:
                     print(f"[WARNING] 個別電文取得スキップ ({denbun_res.status_code}): {json_filename}")
             except Exception as sub_e:
                 print(f"[ERROR] 個別電文取得エラー ({json_filename}): {sub_e}")
 
-            # 3. 正確な気象庁WebダイレクトURLを組み立て (座標 + id + issue)
-            coord_str = denbun_data.get("Body", {}).get("Earthquake", {}).get("Hypocenter", {}).get("Area", {}).get("Coordinate", "")
+            # 3. 気象庁WebダイレクトURLの組み立て (安全に辞書アクセス)
+            quake_info = denbun_data.get("Body", {}) if isinstance(denbun_data, dict) else {}
+            if isinstance(quake_info, dict):
+                earthquake = quake_info.get("Earthquake", {})
+            else:
+                earthquake = {}
+            
+            hypocenter = earthquake.get("Hypocenter", {}) if isinstance(earthquake, dict) else {}
+            area = hypocenter.get("Area", {}) if isinstance(hypocenter, dict) else {}
+            coord_str = area.get("Coordinate", "") if isinstance(area, dict) else ""
+
             if not coord_str:
                 coord_str = item.get("cod", "")
                 
             lat, lon = parse_coordinate(coord_str)
 
-            # ctt (電文日時) と eid (イベントID) の取得
-            ctt = item.get("ctt")
-            if not ctt and json_filename:
-                ctt = json_filename.split("_")[0]
-
-            # URL組み立て
             if lat is not None and lon is not None and eid and ctt:
-                jma_web_url = f"https://www.jma.go.jp/bosai/map.html#11/{lat}/{lon}/&elem=int&contents=earthquake_map&id={eid}&issue={ctt}"
+                jma_web_url = f"https://www.jma.go.jp/bosai/map.html#11/{lat}/{lon}/&elem=int&contents=tsunami&id={eid}&issue={ctt}"
             elif ctt:
-                jma_web_url = f"https://www.jma.go.jp/bosai/map.html#contents=earthquake_map&issue={ctt}"
+                jma_web_url = f"https://www.jma.go.jp/bosai/map.html#contents=tsunami&issue={ctt}"
             else:
-                jma_web_url = "https://www.jma.go.jp/bosai/map.html#contents=earthquake_map"
+                jma_web_url = "https://www.jma.go.jp/bosai/map.html#contents=tsunami"
 
-            # 4. 保存先カテゴリフォルダの決定
-            try:
-                category_dir = determine_category_folder(item, denbun_data, rules)
-            except Exception as cat_e:
-                print(f"[ERROR] カテゴリ判定エラー ({json_filename}): {cat_e}")
-                category_dir = DATABASE_DIR / "quake" / "etc"
+            # 4. 保存先カテゴリフォルダ（問答無用で tsunami 直下）
+            category_dir = DATABASE_DIR / "quake" / "tsunami"
 
             # 5. 共通統一構造（merged_payload）の構築
             merged_payload = {
@@ -195,7 +193,7 @@ def fetch_and_store_loop():
                     json.dumps(merged_payload, ensure_ascii=False, indent=2),
                     encoding="utf-8",
                 )
-                print(f"[SAVED] quake/{category_dir.name}/{pub_dt.strftime('%Y/%m/%d')}/{file_path.name}")
+                print(f"[SAVED] tsunami/{pub_dt.strftime('%Y/%m/%d')}/{file_path.name}")
                 saved_count += 1
 
                 if not newest_datetime or report_datetime > newest_datetime:
