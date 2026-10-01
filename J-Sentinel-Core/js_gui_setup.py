@@ -147,6 +147,7 @@ class JSentinelSetupApp:
         tasks = self.config.get("tasks", {})
         self.task_info_var.set(tasks.get("info", {}).get("enabled", True))
         self.task_quake_var.set(tasks.get("quake", {}).get("enabled", True))
+        self.task_tsunami_var.set(tasks.get("tsunami", {}).get("enabled", True))
         self.task_warning_var.set(tasks.get("warning", {}).get("enabled", True))
         self.task_volcano_var.set(tasks.get("volcano", {}).get("enabled", True))  # ★追加
         self.task_forecast_var.set(tasks.get("forecast", {}).get("enabled", True))

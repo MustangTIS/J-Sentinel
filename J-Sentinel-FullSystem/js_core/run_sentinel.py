@@ -20,8 +20,8 @@ def load_config() -> dict:
             "quake": {"enabled": True, "script": "fetch_quake.py"},
             "tsunami": {"enabled": True, "script": "fetch_tsunami.py"},
             "warning": {"enabled": True, "script": "fetch_warning.py"},
-            "volcano": {"enabled": True, "script": "fetch_volcano.py"},  # ← ★火山警報タスクを追加
-            "forecast": {"enabled": True, "script": "fetch_forecast.py"}, # ← 天気予報タスク
+            "volcano": {"enabled": True, "script": "fetch_volcano.py"},
+            "forecast": {"enabled": True, "script": "fetch_forecast.py"},
         },
         "retention": {"auto_clean_enabled": True, "keep_days": 90},
     }
@@ -166,6 +166,52 @@ def initialize_sync_files():
             except Exception as e:
                 print(f"[WARN] 同期ファイルの初期化に失敗しました ({file_name}): {e}")
 
+def clean_old_files():
+    """設定された保持日数（keep_days）を超える古いキャッシュ・データベースファイルを削除する"""
+    config = load_config()
+    retention_config = config.get("retention", {})
+    
+    if not retention_config.get("auto_clean_enabled", False):
+        return
+
+    keep_days = retention_config.get("keep_days", 90)
+    debug_mode = config.get("debug_mode", False)
+    
+    # 削除対象となる基準時刻を算出
+    threshold_time = datetime.now() - timedelta(days=keep_days)
+    
+    # 探索・削除対象とするディレクトリ（必要に応じて database や logs などを指定）
+    target_dirs = [BASE_DIR / "database"]
+    
+    if debug_mode:
+        print(f"[CLEAN] データクリーンアップ処理を開始します（保持期間: {keep_days}日、基準: {threshold_time.strftime('%Y-%m-%d %H:%M:%S')} 以前）")
+
+    deleted_count = 0
+    for target_dir in target_dirs:
+        if not target_dir.exists():
+            continue
+            
+        # ディレクトリ内のファイル（必要に応じてサブディレクトリや拡張子を絞る）
+        for file_path in target_dir.glob("**/*"):
+            if file_path.is_file():
+                # 同期ファイル（*_last_sync.json）などは直近の状態維持に使うため除外するか、
+                # あるいは純粋に更新日時（mtime）やファイル名に含まれる日付で判断する
+                if file_path.name.endswith("_last_sync.json"):
+                    continue
+                
+                try:
+                    # ファイルの最終更新日時を取得
+                    mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    if mtime < threshold_time:
+                        file_path.unlink()
+                        deleted_count += 1
+                        if debug_mode:
+                            print(f"  - 削除しました: {file_path.name} (最終更新: {mtime.strftime('%Y-%m-%d')})")
+                except Exception as e:
+                    print(f"[WARN] ファイルの削除に失敗しました ({file_path.name}): {e}")
+
+    if debug_mode and deleted_count > 0:
+        print(f"[CLEAN] クリーンアップ完了: 計 {deleted_count} 件の古いファイルを削除しました。")
 
 def main_loop():
     print("==================================================")
@@ -175,6 +221,9 @@ def main_loop():
 
     # 🚀 起動時に同期ファイルを初期化して過去ログ爆撃を防止
     initialize_sync_files()
+    
+    # 🚀 起動時にも一度クリーンアップを実行（任意）
+    clean_old_files()
 
     while True:
         config = load_config()
@@ -186,6 +235,9 @@ def main_loop():
             print(
                 f"\n--- 巡回サイクル開始 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ---"
             )
+
+        # 🚀 巡回サイクルの開始時に古いファイルをクリーンアップ
+        clean_old_files()
 
         # 各タスクの実行判定
         for task_name, task_info in tasks.items():
