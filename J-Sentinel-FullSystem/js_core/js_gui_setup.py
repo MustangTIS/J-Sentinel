@@ -45,7 +45,7 @@ class JSentinelSetupApp:
                 "quake": {"enabled": True, "script": "fetch_quake.py"},
                 "tsunami": {"enabled": True, "script": "fetch_tsunami.py"},
                 "warning": {"enabled": True, "script": "fetch_warning.py"},
-                "volcano": {"enabled": True, "script": "fetch_volcano.py"},  # ★追加
+                "volcano": {"enabled": True, "script": "fetch_volcano.py"},
                 "forecast": {"enabled": True, "script": "fetch_forecast.py"},
             },
             "retention": {"auto_clean_enabled": False, "keep_days": 90},
@@ -114,8 +114,9 @@ class JSentinelSetupApp:
             for t_key, var_obj, script_name in [
                 ("info", self.task_info_var, "fetch_info.py"),
                 ("quake", self.task_quake_var, "fetch_quake.py"),
+                ("tsunami", self.task_quake_var, "fetch_tsunami.py"),
                 ("warning", self.task_warning_var, "fetch_warning.py"),
-                ("volcano", self.task_volcano_var, "fetch_volcano.py"),  # ★追加
+                ("volcano", self.task_volcano_var, "fetch_volcano.py"),
                 ("forecast", self.task_forecast_var, "fetch_forecast.py"),
             ]:
                 if t_key not in self.config["tasks"]:
