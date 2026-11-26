@@ -18,7 +18,7 @@
 
 現在のフルシステムの使い方は公式サイトのマニュアルから。
 
-👉 **[公式マニュアルページ](https://mustangtis.wjg.jp/J-Sentinel/)**
+👉 **[公式マニュアルページ](https://mustangtis.wjg.jp/apps-manual/J-Sentinel/)**
 
 ---
 
